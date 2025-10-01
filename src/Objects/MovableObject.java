@@ -5,13 +5,11 @@ import GeometryPrimitives.Rectangle;
 import GeometryPrimitives.Velocity;
 
 /**
- * MovableObject provides a small convenience base implementation for GameObject
- * instances that have a position, size and a per-frame velocity. This class
- * centralizes common movement and bounding rectangle logic.
+ * Lớp cơ sở cho các đối tượng có thể di chuyển (có vị trí, kích thước và vận tốc).
  *
- * Note: the project uses a per-frame velocity model (dx/dy measured in pixels
- * per frame). If you switch to timestep-based updates, adapt move()/velocity
- * usage accordingly.
+ * Cung cấp tiện ích:
+ * - move(): cập nhật vị trí theo {@link GeometryPrimitives.Velocity} (dx/dy per-frame).
+ * - getBounds(): trả về bounding box cho va chạm.
  */
 public abstract class MovableObject implements GameObject {
     protected double x;
@@ -29,6 +27,9 @@ public abstract class MovableObject implements GameObject {
         this.velocity = new Velocity(0, 0);
     }
 
+    /**
+     * Chuyển đối tượng theo vận tốc hiện tại (gọi mỗi frame trong update).
+     */
     public void move() {
         // velocity is per-frame
         this.x += velocity.getDx();
@@ -51,8 +52,12 @@ public abstract class MovableObject implements GameObject {
     }
 
     @Override
-    public boolean isAlive() { return alive; }
+    public boolean isAlive() {
+        return alive;
+    }
 
     @Override
-    public void destroy() { alive = false; }
+    public void destroy() {
+        alive = false;
+    }
 }

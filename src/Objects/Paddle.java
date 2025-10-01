@@ -4,10 +4,11 @@ import GeometryPrimitives.Velocity;
 import Render.Renderer;
 
 /**
- * Paddle is the player's controllable bar. It moves only horizontally and
- * can accept power-ups that modify its properties.
+ * Thanh điều khiển (paddle) do người chơi điều khiển.
  *
- * Movement is controlled by setting per-frame velocity via moveLeft/moveRight/stop.
+ * Tính năng:
+ * - Di chuyển ngang (left/right/stop) bằng cách thay đổi vận tốc theo trục x.
+ * - Có thể nhận power-up (apply/remove) và lưu một power-up đang hoạt động.
  */
 public class Paddle extends MovableObject {
     private double speed; // pixels per frame
@@ -28,21 +29,31 @@ public class Paddle extends MovableObject {
         renderer.drawPaddle(this);
     }
 
+    /** Bắt đầu di chuyển sang trái bằng cách đặt vận tốc âm. */
     public void moveLeft() {
         setVelocity(new Velocity(-speed, 0));
     }
 
+    /** Bắt đầu di chuyển sang phải bằng cách đặt vận tốc dương. */
     public void moveRight() {
         setVelocity(new Velocity(speed, 0));
     }
 
-    public void stop() { setVelocity(new Velocity(0,0)); }
+    /** Dừng chuyển động ngang. */
+    public void stop() {
+        setVelocity(new Velocity(0,0));
+    }
 
+    /**
+     * Áp dụng power-up lên paddle (lưu tham chiếu và gọi applyEffect).
+     * @param p power-up được áp dụng
+     */
     public void applyPowerUp(PowerUp p) {
         this.currentPowerUp = p;
         p.applyEffect(this);
     }
 
+    /** Gỡ power-up hiện tại nếu có. */
     public void removePowerUp() {
         if (this.currentPowerUp != null) {
             this.currentPowerUp.removeEffect(this);
@@ -50,6 +61,10 @@ public class Paddle extends MovableObject {
         }
     }
 
-    public double getSpeed() { return speed; }
-    public void setSpeed(double s) { this.speed = s; }
+    public double getSpeed() {
+        return speed;
+    }
+    public void setSpeed(double s) {
+        this.speed = s;
+    }
 }

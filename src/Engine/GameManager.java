@@ -8,9 +8,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * GameManager orchestrates game state, objects and rules. It owns the paddle,
- * ball and bricks collections and exposes control operations such as reset and
- * launchBall. The manager also tracks score, lives, and win/lose conditions.
+ * Quản lý trạng thái và quy tắc chơi của trò Arkanoid.
+ *
+ * Nhiệm vụ chính:
+ * - Tạo và giữ tham chiếu tới các đối tượng chính: {@link Objects.Paddle}, {@link Objects.Ball}
+ *   và danh sách {@code bricks}.
+ * - Cập nhật trạng thái mỗi frame (vị trí, va chạm, tính điểm, số mạng).
+ * - Kiểm soát logic win/lose, reset và phóng bóng (launch).
+ *
+ * Trạng thái quan trọng:
+ * - {@code lives}: số mạng còn lại.
+ * - {@code score}: điểm hiện tại.
+ * - {@code ballAttached}: khi true, bóng dính vào paddle và chưa được phóng.
+ *
+ * Lưu ý thiết kế:
+ * - GameManager hiện giữ các đối tượng công khai (public) để ví dụ đơn giản; trong
+ *   ứng dụng lớn hơn nên dùng getter/setter hoặc API riêng để đóng gói trạng thái.
  */
 public class GameManager {
     public Paddle paddle;
@@ -26,11 +39,21 @@ public class GameManager {
     private int nextBrickScore = 50; // points for next destroyed brick
     public boolean ballAttached = true; // when true, ball sits on paddle until launch
 
+    /**
+     * Tạo GameManager với kích thước vùng chơi.
+     *
+     * @param width  chiều rộng vùng chơi (pixel)
+     * @param height chiều cao vùng chơi (pixel)
+     */
     public GameManager(int width, int height) {
         this.width = width; this.height = height;
         initDemo();
     }
 
+    /**
+     * Khởi tạo trạng thái demo: tạo grid brick, paddle và đặt bóng ban đầu.
+     * Phương thức này được dùng bởi constructor và khi reset game.
+     */
     private void initDemo() {
         // Brick grid parameters
         int cols = 6;
@@ -69,6 +92,14 @@ public class GameManager {
         }
     }
 
+    /**
+     * Cập nhật trạng thái game cho mỗi frame.
+     *
+     * Hành vi chính:
+     * - Cập nhật paddle và ball (nếu đã phóng).
+     * - Xử lý va chạm bóng với tường, paddle và brick.
+     * - Kiểm tra điều kiện thua (mất mạng) hoặc thắng (không còn brick sống).
+     */
     public void update() {
         if (gameOver) return;
         // update objects
@@ -153,6 +184,10 @@ public class GameManager {
     if (paddle.getBounds().getUpperLeft().getX() + paddle.getBounds().getWidth() > width) paddle.setX(width - paddle.getBounds().getWidth());
     }
 
+    /**
+     * Đặt lại trò chơi về trạng thái ban đầu (số mạng, điểm, bảng brick,...).
+     * Được gọi khi người chơi muốn chơi lại.
+     */
     public void reset() {
         lives = 3;
         gameOver = false;
@@ -163,6 +198,10 @@ public class GameManager {
         initDemo();
     }
 
+    /**
+     * Phóng bóng từ paddle nếu bóng đang dính (attached) và game chưa kết thúc.
+     * Phương thức đặt {@code ballAttached=false} và gán vận tốc ban đầu cho bóng.
+     */
     public void launchBall() {
         if (!ballAttached || gameOver) return;
         // give the ball an initial upward velocity

@@ -3,6 +3,9 @@ package Objects;
 /**
  * StrongBrick requires multiple hits (hp &gt; 1) to be destroyed.
  */
+/**
+ * Viên gạch cứng: cần nhiều lần trúng (hp > 1) mới bị phá.
+ */
 public class StrongBrick extends Brick {
     public StrongBrick(double x, double y, double width, double height, int hp) {
         super(x, y, width, height, hp);

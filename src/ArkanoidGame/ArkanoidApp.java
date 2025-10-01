@@ -11,13 +11,36 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
+/**
+ * Lớp khởi tạo ứng dụng Arkanoid bằng JavaFX và nối GameManager với Renderer.
+ *
+ * Mô tả:
+ * - Tạo cửa sổ chơi với kích thước cố định (WIDTH x HEIGHT).
+ * - Khởi tạo {@code GameManager} để quản lý trạng thái game và {@code Renderer}
+ *   để vẽ trạng thái lên {@link javafx.scene.canvas.Canvas}.
+ * - Đăng ký sự kiện bàn phím: trái/phải để điều khiển paddle, SPACE để phóng bóng,
+ *   R để reset khi game đã kết thúc.
+ * - Chạy vòng lặp game bằng {@link javafx.animation.AnimationTimer} để gọi
+ *   {@link Engine.GameManager#update()} và vẽ các đối tượng mỗi frame.
+ */
 public class ArkanoidApp extends Application {
-    private static final int WIDTH = 640;
-    private static final int HEIGHT = 480;
+    private static final int WIDTH = 600;
+    private static final int HEIGHT = 800;
 
     private GameManager gameManager;
     private Renderer renderer;
 
+    /**
+     * Điểm vào của JavaFX: khởi tạo giao diện, đăng ký event, và bắt đầu vòng lặp chơi.
+     *
+     * Các bước chính:
+     * - Tạo {@link Canvas} và {@link CanvasRenderer} để vẽ.
+     * - Khởi tạo {@link Engine.GameManager} chứa logic game và các đối tượng.
+     * - Thiết lập các handler cho sự kiện phím để điều khiển paddle và hành động game.
+     * - Khởi động {@link javafx.animation.AnimationTimer} để cập nhật trạng thái và render.
+     *
+     * @param stage cửa sổ chính của ứng dụng JavaFX
+     */
     @Override
     public void start(Stage stage) {
         Canvas canvas = new Canvas(WIDTH, HEIGHT);
@@ -71,6 +94,10 @@ public class ArkanoidApp extends Application {
         loop.start();
     }
 
+    /**
+     * Hàm main tiêu chuẩn để khởi chạy ứng dụng JavaFX.
+     * @param args đối số dòng lệnh (nếu có)
+     */
     public static void main(String[] args) {
         launch(args);
     }

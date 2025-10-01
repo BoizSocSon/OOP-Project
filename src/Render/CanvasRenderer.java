@@ -9,7 +9,10 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- * Minimal renderer that draws simple shapes on a JavaFX Canvas.
+ * Triển khai {@link Renderer} sử dụng JavaFX {@link javafx.scene.canvas.Canvas}.
+ *
+ * Mỗi phương thức vẽ sử dụng các hình cơ bản (fillRect, fillOval) và màu sắc cố định
+ * để hiển thị các đối tượng trò chơi. Thiết kế này giữ phần render đơn giản và dễ đọc.
  */
 public class CanvasRenderer implements Renderer {
     private final Canvas canvas;

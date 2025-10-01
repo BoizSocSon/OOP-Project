@@ -1,9 +1,13 @@
 package Objects;
-
 /**
- * ExpandPaddlePowerUp increases the paddle width by a fixed amount while active.
- * Note: this simple implementation mutates the paddle width directly; a safer
- * approach would store the original width and restore it in removeEffect.
+ * Power-up dạng mở rộng chiều ngang của paddle khi người chơi nhặt được.
+ *
+ * Cơ chế đơn giản:
+ * - Khi áp dụng, tăng trực tiếp kích thước {@code width} của paddle.
+ * - Khi hết hiệu lực (hoặc bị xoá), giảm lại kích thước tương ứng.
+ *
+ * Lưu ý: cài đặt hiện tại thay đổi trực tiếp field package-visible của Paddle;
+ * trong hệ thống lớn hơn nên dùng API an toàn (getter/setter) để tránh lỗi.
  */
 public class ExpandPaddlePowerUp extends PowerUp {
     private double expandAmount;
@@ -13,12 +17,14 @@ public class ExpandPaddlePowerUp extends PowerUp {
         this.expandAmount = expandAmount;
     }
 
+    /** Áp dụng hiệu ứng lên paddle: tăng chiều rộng paddle. */
     @Override
     public void applyEffect(Paddle paddle) {
         paddle.setSpeed(paddle.getSpeed());
         paddle.width += expandAmount; // package-visible field
     }
 
+    /** Bỏ hiệu ứng: trả lại chiều rộng ban đầu. */
     @Override
     public void removeEffect(Paddle paddle) {
         paddle.width -= expandAmount;

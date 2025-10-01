@@ -6,9 +6,11 @@ import Objects.Brick;
 import Objects.PowerUp;
 
 /**
- * Renderer is an abstraction used by game objects to draw themselves.
- * Implementations may use JavaFX, Swing or a software renderer. The Game
- * code depends only on this interface so rendering can be swapped easily.
+ * Abstraction cho lớp responsible vẽ các đối tượng game lên màn hình.
+ *
+ * Mục đích:
+ * - Tách rời logic game khỏi chi tiết vẽ (ví dụ JavaFX Canvas hoặc engine khác).
+ * - Cung cấp các phương thức cần thiết để đối tượng gọi khi render.
  */
 public interface Renderer {
     void clear();

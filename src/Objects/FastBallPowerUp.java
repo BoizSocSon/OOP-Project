@@ -1,9 +1,10 @@
 package Objects;
 
 /**
- * FastBallPowerUp is intended to increase the ball speed. The current skeleton
- * leaves the application logic to the GameManager (so this class records the
- * multiplier but doesn't directly mutate the ball).
+ * Power-up tăng tốc độ của bóng khi được áp dụng.
+ *
+ * Lưu ý: cài đặt hiện tại lưu hệ số tăng tốc nhưng không tự động áp dụng lên Ball;
+ * GameManager hoặc mã gọi đến phải lấy thông tin này và thay đổi vận tốc bóng theo ý muốn.
  */
 public class FastBallPowerUp extends PowerUp {
     private double speedMultiplier;
@@ -13,6 +14,11 @@ public class FastBallPowerUp extends PowerUp {
         this.speedMultiplier = speedMultiplier;
     }
 
+    /**
+     * Ghi chú: phương thức này không áp dụng trực tiếp trên {@link Paddle};
+     * để áp dụng lên {@link Objects.Ball}, GameManager cần đọc instance này
+     * và điều chỉnh {@code Ball.velocity} tương ứng.
+     */
     @Override
     public void applyEffect(Paddle paddle) {
         // not applicable to paddle; this powerup should be applied to a Ball via GameManager

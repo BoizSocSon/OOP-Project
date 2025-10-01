@@ -7,32 +7,44 @@ import GeometryPrimitives.Rectangle;
 import Render.Renderer;
 
 /**
- * Ball represents the projectile in Arkanoid. It stores a radius and a per-frame
- * velocity. Collision detection uses a simple swept-line approach: the ball's
- * center traces a line from its current center to the next center (center + velocity)
- * and intersections with rectangle edges are used to compute collisions.
+ * Biểu diễn quả bóng trong trò Arkanoid.
  *
- * The class exposes {@link #checkCollisionWithRect(Rectangle)} which returns true
- * and updates the ball's velocity and position when a collision is detected.
+ * Chi tiết:
+ * - Lưu tâm hình học bằng bounding box (đa số sử dụng {@link GeometryPrimitives.Rectangle}).
+ * - Sử dụng phương pháp "swept-line" (đường quỹ đạo tâm bóng theo 1 frame) để phát hiện va chạm
+ *   với các cạnh của {@link GeometryPrimitives.Rectangle} (paddle, brick, tường).
+ * - Khi va chạm xảy ra sẽ phản xạ vận tốc theo cạnh bị trúng và đẩy bóng ra một chút
+ *   để tránh va chạm liên tiếp ngay lập tức.
  */
 public class Ball extends MovableObject {
+    private static final double EPSILON = 1e-6; // small tolerance for floating-point comparisons
     private double radius;
 
+    // Kế thừa constructor từ MovableObject với vị trí (x,y) là góc trên bên trái của bounding box
     public Ball(double centerX, double centerY, double radius, Velocity initialVelocity) {
         super(centerX - radius, centerY - radius, radius * 2, radius * 2);
         this.radius = radius;
         this.velocity = initialVelocity;
     }
 
+    /**
+     * Lấy tọa độ tâm bóng.
+     * @return {@link GeometryPrimitives.Point} - vị trí trung tâm bóng (pixel)
+     */
     public Point getCenter() {
         return new Point(x + radius, y + radius);
     }
 
+    /**
+     * Đặt vị trí tâm bóng.
+     * @param p tâm mới của bóng
+     */
     public void setCenter(Point p) {
         this.x = p.getX() - radius;
         this.y = p.getY() - radius;
     }
 
+    /** Cập nhật vị trí bóng theo vận tốc hiện tại (gọi move()). */
     @Override
     public void update() {
         move();
@@ -44,8 +56,16 @@ public class Ball extends MovableObject {
     }
 
     /**
-     * Check collision against a rectangle (e.g., wall/paddle/brick) using swept line.
-     * If collision occurs, reflect velocity across the collided side normal.
+     * Kiểm tra va chạm giữa quỹ đạo tâm bóng trong frame hiện tại và một hình chữ nhật.
+     *
+     * Thuật toán:
+     * - Tạo {@link GeometryPrimitives.Line} từ tâm hiện tại đến tâm ở frame tiếp theo.
+     * - Tìm giao điểm gần điểm bắt đầu nhất với các cạnh của {@link GeometryPrimitives.Rectangle}.
+     * - Nếu có giao điểm, xác định cạnh bị trúng và phản xạ vận tốc tương ứng.
+     * - Điều chỉnh vị trí tâm bóng để tránh va chạm lặp lại (đẩy ra một epsilon).
+     *
+     * @param rect vùng chữ nhật kiểm tra va chạm
+     * @return true nếu có va chạm và trạng thái bóng đã được cập nhật; false nếu không có va chạm
      */
     public boolean checkCollisionWithRect(Rectangle rect) {
         Point center = getCenter();
@@ -60,11 +80,10 @@ public class Ball extends MovableObject {
         double w = rect.getWidth();
         double h = rect.getHeight();
 
-        double eps = 1e-6;
-        boolean hitTop = Math.abs(hit.getY() - uy) < eps;
-        boolean hitBottom = Math.abs(hit.getY() - (uy + h)) < eps;
-        boolean hitLeft = Math.abs(hit.getX() - ux) < eps;
-        boolean hitRight = Math.abs(hit.getX() - (ux + w)) < eps;
+        boolean hitTop = Math.abs(hit.getY() - uy) < EPSILON;
+        boolean hitBottom = Math.abs(hit.getY() - (uy + h)) < EPSILON;
+        boolean hitLeft = Math.abs(hit.getX() - ux) < EPSILON;
+        boolean hitRight = Math.abs(hit.getX() - (ux + w)) < EPSILON;
 
         double dx = velocity.getDx();
         double dy = velocity.getDy();
