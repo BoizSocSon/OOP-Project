@@ -12,12 +12,12 @@ import GeometryPrimitives.Velocity;
  * - getBounds(): trả về bounding box cho va chạm.
  */
 public abstract class MovableObject implements GameObject {
-    protected double x;
-    protected double y;
-    protected double width;
-    protected double height;
-    protected Velocity velocity; // per-frame dx/dy
-    protected boolean alive = true;
+    private double x;
+    private double y;
+    private double width;
+    private double height;
+    private Velocity velocity; // per-frame dx/dy
+    private boolean alive = true;
 
     public MovableObject(double x, double y, double width, double height) {
         this.x = x;
@@ -45,6 +45,12 @@ public abstract class MovableObject implements GameObject {
     public void setY(double y) { this.y = y; }
     public double getWidthValue() { return width; }
     public double getHeightValue() { return height; }
+    
+    // Standard accessors (preferred)
+    public double getWidth() { return this.width; }
+    public double getHeight() { return this.height; }
+    public void setWidth(double width) { this.width = width; }
+    public void setHeight(double height) { this.height = height; }
 
     @Override
     public Rectangle getBounds() {

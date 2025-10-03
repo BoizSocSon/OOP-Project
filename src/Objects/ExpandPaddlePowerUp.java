@@ -11,6 +11,7 @@ package Objects;
  */
 public class ExpandPaddlePowerUp extends PowerUp {
     private double expandAmount;
+    private Double originalWidth = null;
 
     public ExpandPaddlePowerUp(double x, double y, double width, double height, double duration, double expandAmount) {
         super(x,y,width,height,duration);
@@ -20,14 +21,23 @@ public class ExpandPaddlePowerUp extends PowerUp {
     /** Áp dụng hiệu ứng lên paddle: tăng chiều rộng paddle. */
     @Override
     public void applyEffect(Paddle paddle) {
-        paddle.setSpeed(paddle.getSpeed());
-        paddle.width += expandAmount; // package-visible field
+        // store original width so it can be restored later
+        if (originalWidth == null) {
+            originalWidth = paddle.getWidth();
+        }
+        paddle.setWidth(paddle.getWidth() + expandAmount);
     }
 
     /** Bỏ hiệu ứng: trả lại chiều rộng ban đầu. */
     @Override
     public void removeEffect(Paddle paddle) {
-        paddle.width -= expandAmount;
+        if (originalWidth != null) {
+            paddle.setWidth(originalWidth);
+            originalWidth = null;
+        } else {
+            // fallback: decrement by amount
+            paddle.setWidth(Math.max(0, paddle.getWidth() - expandAmount));
+        }
     }
 
     @Override

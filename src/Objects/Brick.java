@@ -16,12 +16,12 @@ import Render.Renderer;
  * - {@link #takeHit()} giảm một đơn vị HP và gọi {@link #destroy()} khi HP <= 0.
  */
 public abstract class Brick implements GameObject {
-    protected double x;
-    protected double y;
-    protected double width;
-    protected double height;
-    protected int hitPoints;
-    protected boolean alive = true;
+    private double x;
+    private double y;
+    private double width;
+    private double height;
+    private int hitPoints;
+    private boolean alive = true;
 
     public Brick(double x, double y, double width, double height, int hp) {
         this.x = x;
@@ -30,6 +30,13 @@ public abstract class Brick implements GameObject {
         this.height = height;
         this.hitPoints = hp;
     }
+
+    // Accessors
+    public double getX() { return x; }
+    public double getY() { return y; }
+    public double getWidth() { return width; }
+    public double getHeight() { return height; }
+    public int getHitPoints() { return hitPoints; }
 
     /** Giảm số "máu" (hit points) đi 1; phá hủy khi hp <= 0. */
     public void takeHit() {

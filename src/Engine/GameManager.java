@@ -60,8 +60,8 @@ public class GameManager {
         int rows = 3;
         double brickW = 60.0;
         double brickH = 20.0;
-        double hSpacing = 1.0; // horizontal spacing between bricks
-        double vSpacing = 1.0; // vertical spacing between brick rows
+        double hSpacing = 5.0; // horizontal spacing between bricks
+        double vSpacing = 5.0; // vertical spacing between brick rows
 
         // paddle should be twice the brick width and half the brick height
         double paddleW = brickW * 2.0;

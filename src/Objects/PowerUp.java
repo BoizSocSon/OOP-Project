@@ -12,12 +12,12 @@ import GeometryPrimitives.Rectangle;
  * - active: cờ còn tồn tại trên bản đồ hay đã bị thu/huỷ.
  */
 public abstract class PowerUp implements GameObject {
-    protected double x;
-    protected double y;
-    protected double width;
-    protected double height;
-    protected double duration; // frames
-    protected boolean active = true;
+    private double x;
+    private double y;
+    private double width;
+    private double height;
+    private double duration; // frames
+    private boolean active = true;
 
     public PowerUp(double x, double y, double width, double height, double duration) {
         this.x = x;
@@ -26,6 +26,14 @@ public abstract class PowerUp implements GameObject {
         this.height = height;
         this.duration = duration;
     }
+
+    // Basic accessors for encapsulated fields
+    public double getX() { return x; }
+    public double getY() { return y; }
+    public double getWidth() { return width; }
+    public double getHeight() { return height; }
+    public double getDuration() { return duration; }
+    public boolean isActive() { return active; }
 
     /** Áp dụng hiệu ứng cho thanh trượt (paddle) hoặc mục tiêu khác. */
     public abstract void applyEffect(Paddle paddle);

@@ -85,4 +85,21 @@ public class Point {
     public double getY() {
         return y;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (!(obj instanceof Point)) return false;
+        Point other = (Point) obj;
+        return Math.abs(this.x - other.x) < EPSILON && Math.abs(this.y - other.y) < EPSILON;
+    }
+
+    @Override
+    public int hashCode() {
+        // Use Double.hashCode for stable hashing that aligns with equals tolerance reasonably.
+        int hx = Double.hashCode(Math.round(x / EPSILON) );
+        int hy = Double.hashCode(Math.round(y / EPSILON) );
+        return 31 * hx + hy;
+    }
 }

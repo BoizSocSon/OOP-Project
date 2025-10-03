@@ -112,16 +112,39 @@ public class Rectangle {
 
     public Point getUpperLeft() {
         // Trả về toạ độ góc trên bên trái của hình chữ nhật
-        return this.upperLeft;
+        // Return a defensive copy to avoid external mutation of internal state
+        return new Point(this.upperLeft.getX(), this.upperLeft.getY());
     }
 
     public boolean equals(Rectangle rectangle) {
         // So sánh hai Rectangle theo toạ độ góc trên trái và kích thước với sai số EPSILON
-        if (rectangle == null) {
-            return false;
-        }
-        return this.upperLeft.equals(rectangle.upperLeft)
-                && Math.abs(this.width - rectangle.width) < EPSILON
-                && Math.abs(this.height - rectangle.height) < EPSILON;
+        // Keep for backward compatibility but delegate to standard equals(Object)
+        return this.equals((Object) rectangle);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (!(obj instanceof Rectangle)) return false;
+        Rectangle other = (Rectangle) obj;
+        if (!this.upperLeft.equals(other.upperLeft)) return false;
+        if (Math.abs(this.width - other.width) >= EPSILON) return false;
+        if (Math.abs(this.height - other.height) >= EPSILON) return false;
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        // Quantize values by EPSILON to align with equals tolerance
+        long ux = Math.round(this.upperLeft.getX() / EPSILON);
+        long uy = Math.round(this.upperLeft.getY() / EPSILON);
+        long w = Math.round(this.width / EPSILON);
+        long h = Math.round(this.height / EPSILON);
+        int result = Long.hashCode(ux);
+        result = 31 * result + Long.hashCode(uy);
+        result = 31 * result + Long.hashCode(w);
+        result = 31 * result + Long.hashCode(h);
+        return result;
     }
 }
