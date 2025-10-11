@@ -6,6 +6,8 @@ out/
 .idea/
 *.iml
 *.puml
+*.py
+*.txt
 
 ### Eclipse ###
 .apt_generated

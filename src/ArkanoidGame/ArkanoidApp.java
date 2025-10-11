@@ -61,7 +61,8 @@ public class ArkanoidApp extends Application {
             }
         });
         scene.setOnKeyReleased(e -> {
-            if (e.getCode() == KeyCode.LEFT || e.getCode() == KeyCode.RIGHT) gameManager.paddle.stop();
+            if (e.getCode() == KeyCode.LEFT || e.getCode() == KeyCode.RIGHT)
+                gameManager.paddle.stop();
         });
 
         stage.setScene(scene);
@@ -73,11 +74,9 @@ public class ArkanoidApp extends Application {
             public void handle(long now) {
                 gameManager.update();
                 renderer.clear();
-                // draw paddle, ball, bricks
                 renderer.drawPaddle(gameManager.paddle);
                 renderer.drawBall(gameManager.ball);
                 for (var b : gameManager.bricks) if (b.isAlive()) renderer.drawBrick(b);
-                // HUD: score and lives
                 renderer.drawText("Score: " + gameManager.score, 10, 20);
                 renderer.drawText("Lives: " + gameManager.lives, 540, 20);
                 if (gameManager.gameOver) {

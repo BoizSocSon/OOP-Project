@@ -1,6 +1,10 @@
 package Engine;
 
-import Objects.*;
+import Objects.GameEntities.Ball;
+import Objects.GameEntities.Paddle;
+import Objects.Bricks.Brick;
+import Objects.Bricks.NormalBrick;
+import Objects.Bricks.SilverBrick;
 import GeometryPrimitives.Point;
 import GeometryPrimitives.Rectangle;
 import GeometryPrimitives.Velocity;
@@ -20,7 +24,7 @@ import java.util.List;
  * - {@code lives}: số mạng còn lại.
  * - {@code score}: điểm hiện tại.
  * - {@code ballAttached}: khi true, bóng dính vào paddle và chưa được phóng.
- *
+ *76
  * Lưu ý thiết kế:
  * - GameManager hiện giữ các đối tượng công khai (public) để ví dụ đơn giản; trong
  *   ứng dụng lớn hơn nên dùng getter/setter hoặc API riêng để đóng gói trạng thái.
@@ -36,8 +40,8 @@ public class GameManager {
     public boolean gameOver = false;
     public boolean won = false;
     public int score = 0;
-    private int nextBrickScore = 50; // points for next destroyed brick
-    public boolean ballAttached = true; // when true, ball sits on paddle until launch
+    private int nextBrickScore = 50; // điểm cộng cho viên gạch bị phá tiếp theo
+    public boolean ballAttached = true; // khi true, bóng dính vào paddle cho tới khi được phóng
 
     /**
      * Tạo GameManager với kích thước vùng chơi.
@@ -60,17 +64,17 @@ public class GameManager {
         int rows = 3;
         double brickW = 60.0;
         double brickH = 20.0;
-        double hSpacing = 5.0; // horizontal spacing between bricks
-        double vSpacing = 5.0; // vertical spacing between brick rows
+        double hSpacing = 5.0; // khoảng cách ngang giữa các viên gạch
+        double vSpacing = 5.0; // khoảng cách dọc giữa các hàng gạch
 
-        // paddle should be twice the brick width and half the brick height
+        // paddle nên có chiều rộng gấp đôi viên gạch và chiều cao bằng một nửa viên gạch
         double paddleW = brickW * 2.0;
         double paddleH = Math.max(4.0, brickH / 2.0);
         paddle = new Paddle((width - paddleW) / 2.0, height - 40, paddleW, paddleH, 6);
 
-    // initial ball centered above paddle and attached
-    ball = new Ball((width/2.0) - 8, height - 60, 8, new Velocity(0, 0));
-    ballAttached = true;
+        // bóng ban đầu đặt ở giữa phía trên paddle và dính (attached)
+        ball = new Ball((width/2.0) - 8, height - 60, 8, new Velocity(0, 0));
+        ballAttached = true;
 
         // compute centered start X for the whole grid
         double totalWidth = cols * brickW + (cols - 1) * hSpacing;
@@ -86,7 +90,7 @@ public class GameManager {
                 if (rnd.nextBoolean()) {
                     bricks.add(new NormalBrick(x, y, brickW, brickH));
                 } else {
-                    bricks.add(new StrongBrick(x, y, brickW, brickH, 2));
+                    bricks.add(new SilverBrick(x, y, brickW, brickH, 2));
                 }
             }
         }
@@ -124,9 +128,9 @@ public class GameManager {
 
         // ball fell below bottom
         if (ball.getBounds().getUpperLeft().getY() > height) {
-            // lost a life
+            // mất một mạng
             lives--;
-            // deduct 500 points for losing a life, but never below 0
+            // trừ 500 điểm khi mất mạng, nhưng không thấp hơn 0
             score = Math.max(0, score - 500);
             if (lives <= 0) {
                 // game over due to no lives left
@@ -149,10 +153,10 @@ public class GameManager {
             if (ball.checkCollisionWithRect(b.getBounds())) {
                 b.takeHit();
                 if (beforeAlive && !b.isAlive()) {
-                    // destroyed — award score using incremental scheme
+                    // bị phá — cộng điểm theo cơ chế tăng dần
                     score += nextBrickScore;
                     // increment nextBrickScore depending on type
-                    if (b instanceof StrongBrick) nextBrickScore += 20; else nextBrickScore += 10;
+                    if (b instanceof SilverBrick) nextBrickScore += 20; else nextBrickScore += 10;
                 }
             }
         }
@@ -161,7 +165,7 @@ public class GameManager {
         boolean anyAlive = false;
         for (Brick b : bricks) { if (b.isAlive()) { anyAlive = true; break; } }
         if (!anyAlive) {
-            // Only count as a win if the player still has at least one life remaining
+            // Chỉ tính là thắng nếu người chơi còn ít nhất một mạng
             gameOver = true;
             won = (lives > 0);
             return;
@@ -169,7 +173,7 @@ public class GameManager {
 
         // ball vs paddle
         if (ball.checkCollisionWithRect(paddle.getBounds())) {
-            // Optional: tweak reflection based on where on the paddle the ball hit to change angle
+            // Tùy chọn: điều chỉnh phản xạ dựa trên vị trí chạm trên paddle để thay đổi góc
             // compute offset from paddle center
             double paddleCenterX = paddle.getBounds().getUpperLeft().getX() + paddle.getBounds().getWidth() / 2.0;
             double diff = ball.getCenter().getX() - paddleCenterX;
@@ -179,9 +183,9 @@ public class GameManager {
             ball.setVelocity(new Velocity(baseSpeedX + norm * 1.5, ball.getVelocity().getDy()));
         }
 
-    // paddle bounds clamp
-    if (paddle.getBounds().getUpperLeft().getX() < 0) paddle.setX(0);
-    if (paddle.getBounds().getUpperLeft().getX() + paddle.getBounds().getWidth() > width) paddle.setX(width - paddle.getBounds().getWidth());
+        // paddle bounds clamp
+        if (paddle.getBounds().getUpperLeft().getX() < 0) paddle.setX(0);
+        if (paddle.getBounds().getUpperLeft().getX() + paddle.getBounds().getWidth() > width) paddle.setX(width - paddle.getBounds().getWidth());
     }
 
     /**
@@ -204,9 +208,9 @@ public class GameManager {
      */
     public void launchBall() {
         if (!ballAttached || gameOver) return;
-        // give the ball an initial upward velocity
+        // gán vận tốc ban đầu hướng lên cho bóng
         ballAttached = false;
-        // launch straight up (no horizontal component)
+        // phóng thẳng lên (không có thành phần ngang)
         ball.setVelocity(new Velocity(0, -2));
     }
 

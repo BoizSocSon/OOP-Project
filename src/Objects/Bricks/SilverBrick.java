@@ -1,0 +1,19 @@
+package Objects.Bricks;
+
+/**
+ * StrongBrick requires multiple hits (hp &gt; 1) to be destroyed.
+ */
+/**
+ * Viên gạch cứng: cần nhiều lần trúng (hp > 1) mới bị phá.
+ */
+public class SilverBrick extends Brick {
+    public SilverBrick(double x, double y, double width, double height, int hp) {
+        super(x, y, width, height, hp);
+    }
+
+    @Override
+    public void update() { }
+
+    @Override
+    public void render(Render.Renderer renderer) { renderer.drawBrick(this); }
+}

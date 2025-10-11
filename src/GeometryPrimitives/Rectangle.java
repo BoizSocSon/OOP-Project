@@ -47,7 +47,7 @@ public class Rectangle {
     public List<Point> intersectionPoints(Line line) {
         List<Point> intersections = new ArrayList<>();
 
-        // Precompute corner points (fewer repeated calls to getters)
+        // Tính trước các điểm gốc để tránh gọi getter lặp lại
         final double x = this.upperLeft.getX();
         final double y = this.upperLeft.getY();
         final Point topLeft = this.upperLeft;

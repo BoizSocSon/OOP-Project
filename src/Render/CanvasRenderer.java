@@ -1,9 +1,9 @@
 package Render;
 
-import Objects.Ball;
-import Objects.Paddle;
-import Objects.Brick;
-import Objects.PowerUp;
+import Objects.GameEntities.Ball;
+import Objects.Bricks.Brick;
+import Objects.GameEntities.Paddle;
+import Objects.PowerUps.PowerUp;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -55,7 +55,7 @@ public class CanvasRenderer implements Renderer {
     }
 
     @Override
-    public void present() { /* Canvas draws immediately */ }
+    public void present() { /* Canvas vẽ ngay lập tức nên không cần hành động thêm */ }
 
     @Override
     public void drawText(String text, double x, double y) {

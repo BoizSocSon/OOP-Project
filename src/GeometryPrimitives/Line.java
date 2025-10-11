@@ -53,7 +53,7 @@ public class Line {
         Point closestPoint = intersections.get(0);
         double minDistance = start.distance(closestPoint);
 
-        // finds the closest point to the start of the line
+        // tìm điểm giao gần nhất so với điểm bắt đầu của đoạn
         for (Point point : intersections) {
             double distance = start.distance(point);
             if (distance < minDistance) {
