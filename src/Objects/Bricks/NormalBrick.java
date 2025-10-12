@@ -1,21 +1,36 @@
 package Objects.Bricks;
 
+import Graphics.Renderer;
+import Graphics.SpriteCache;
+
 /**
- * NormalBrick is destroyed with a single hit (hp = 1).
- */
-/**
- * Viên gạch thông thường: chỉ cần 1 hit để phá hủy.
+ * NormalBrick - loại gạch thông thường.
+ * Destroyed sau 1 hit.
  */
 public class NormalBrick extends Brick {
-    public NormalBrick(double x, double y, double width, double height) {
-        super(x, y, width, height, 1);
+
+    /**
+     * Constructor nhận BrickType.
+     * Mỗi màu BrickType khác nhau sẽ có điểm và sprite riêng.
+     */
+    public NormalBrick(BrickType type) {
+        super(type);
+        this.hp = 1; // Vỡ sau 1 hit
     }
 
+    /**
+     * Render sprite tương ứng với BrickType.
+     */
     @Override
-    public void update() {}
+    public void render(Renderer renderer) {
+        renderer.drawSprite(SpriteCache.getBrickSprite(type), x, y);
+    }
 
+    /**
+     * Trả về điểm dựa trên BrickType.
+     */
     @Override
-    public void render(Render.Renderer renderer) {
-        renderer.drawBrick(this);
+    public int getScore() {
+        return type.getBaseScore();
     }
 }
