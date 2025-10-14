@@ -3,7 +3,6 @@ package Objects.Bricks;
 import GeometryPrimitives.Point;
 import GeometryPrimitives.Rectangle;
 import Objects.Core.GameObject;
-import Render.Renderer;
 
 /**
  * Lớp trừu tượng cho các viên gạch (brick) có thể bị phá hủy.
