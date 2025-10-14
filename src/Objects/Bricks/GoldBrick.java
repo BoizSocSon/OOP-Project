@@ -1,11 +1,10 @@
 package Objects.Bricks;
 
-import Graphics.Renderer;
-import Graphics.SpriteCache;
+import Render.Renderer;
 
 /**
  * GoldBrick - viên gạch vàng đặc biệt.
- * 
+ *
  * Chức năng:
  * - Không thể bị phá hủy.
  * - Chỉ phản xạ bóng, không thay đổi trạng thái.
@@ -13,27 +12,34 @@ import Graphics.SpriteCache;
 public class GoldBrick extends Brick {
 
     /**
-     * Constructor.
-     * Gán hp = Integer.MAX_VALUE để không bao giờ bị phá hủy.
+     * Constructor: GoldBrick không thể bị phá hủy.
      */
-    public GoldBrick() {
-        super(BrickType.GOLD);
-        this.hp = Integer.MAX_VALUE;
+    public GoldBrick(double x, double y, double width, double height) {
+        super(x, y, width, height, Integer.MAX_VALUE);
     }
 
     /**
-     * Khi bị bóng va chạm - không làm gì cả.
+     * Không làm gì khi bị hit.
      */
     @Override
     public void takeHit() {
         // Không giảm hp, không thay đổi trạng thái.
+        return;
+    }
+    
+    /**
+     * Update method - không cần làm gì cho gold brick.
+     */
+    @Override
+    public void update() {
+        // Gold brick không có animation hoặc state changes
     }
 
     /**
-     * Hiển thị viên gạch vàng.
+     * Render gold brick sprite.
      */
     @Override
     public void render(Renderer renderer) {
-        renderer.drawSprite(SpriteCache.getBrickSprite(BrickType.GOLD), x, y);
+        renderer.drawSprite(BrickType.GOLD.getSpriteName(), getX(), getY());
     }
 }

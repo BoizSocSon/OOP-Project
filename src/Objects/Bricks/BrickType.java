@@ -1,5 +1,7 @@
 package Objects.Bricks;
 
+import Utils.Constants;
+
 /**
  * Enum representing different types of bricks in the game.
  * Special bricks include:
@@ -7,16 +9,16 @@ package Objects.Bricks;
  * - GOLD: Indestructible (999 hit points)
  */
 public enum BrickType {
-    BLUE(1, "brick_blue.png", 60),
-    RED(1, "brick_red.png", 70),
-    GREEN(1, "brick_green.png", 80),
-    YELLOW(1, "brick_yellow.png", 90),
-    ORANGE(1, "brick_orange.png", 100),
-    PINK(1, "brick_pink.png", 110),
-    CYAN(1, "brick_cyan.png", 120),
-    WHITE(1, "brick_white.png", 150),
-    SILVER(2, "brick_silver.png", 50),
-    GOLD(999, "brick_gold.png", 0);
+    BLUE(1, "brick_blue.png", Constants.Scoring.SCORE_BRICK_BASE + 10),
+    RED(1, "brick_red.png", Constants.Scoring.SCORE_BRICK_BASE + 20),
+    GREEN(1, "brick_green.png", Constants.Scoring.SCORE_BRICK_BASE + 30),
+    YELLOW(1, "brick_yellow.png", Constants.Scoring.SCORE_BRICK_BASE + 40),
+    ORANGE(1, "brick_orange.png", Constants.Scoring.SCORE_BRICK_BASE + 50),
+    PINK(1, "brick_pink.png", Constants.Scoring.SCORE_BRICK_BASE + 60),
+    CYAN(1, "brick_cyan.png", Constants.Scoring.SCORE_BRICK_BASE + 70),
+    WHITE(1, "brick_white.png", Constants.Scoring.SCORE_BRICK_BASE + 80),
+    SILVER(2, "brick_silver.png", Constants.Scoring.SCORE_BRICK_BASE),
+    GOLD(999, "brick_gold.png", Constants.Scoring.SCORE_BRICK_BASE + 0);
 
     private final int hitPoints;
     private final String spriteName;

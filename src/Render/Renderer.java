@@ -4,24 +4,35 @@ import Objects.GameEntities.Ball;
 import Objects.Bricks.Brick;
 import Objects.GameEntities.Paddle;
 import Objects.PowerUps.PowerUp;
+import javafx.scene.image.Image;
 
 /**
- * Giao diện trừu tượng chịu trách nhiệm vẽ các đối tượng game lên màn hình.
+ * Interface for rendering game objects to screen.
  *
- * Mục đích:
- * - Tách riêng phần render khỏi logic game (ví dụ: JavaFX Canvas hoặc engine khác).
- * - Cung cấp các phương thức cần thiết để các đối tượng game gọi khi render.
+ * Purpose:
+ * - Separates rendering from game logic (e.g., JavaFX Canvas or other engines)
+ * - Provides necessary methods for game objects to call when rendering
+ * - Supports both sprite-based and primitive drawing
  */
 public interface Renderer {
-    /** Xoá màn hình trước khi vẽ lại */
+    /** Clear screen before redrawing */
     void clear();
 
+    /** Draw game objects using their specific rendering logic */
     void drawBall(Ball b);
     void drawPaddle(Paddle p);
     void drawBrick(Brick b);
     void drawPowerUp(PowerUp p);
+    
+    /** Draw raw images (for animations, sprites, etc.) */
+    void drawImage(Image image, double x, double y);
+    
+    /** Draw sprite by name (loads from sprite cache) */
+    void drawSprite(String spriteName, double x, double y);
+    
+    /** Draw text at position */
     void drawText(String text, double x, double y);
 
-    /** Gọi khi hoàn tất các lệnh vẽ cho frame (Canvas vẽ ngay nên thường trống) */
+    /** Finalize drawing commands for current frame */
     void present();
 }

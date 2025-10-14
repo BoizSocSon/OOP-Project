@@ -1,21 +1,27 @@
 package Objects.Bricks;
 
-import Graphics.Renderer;
-import Graphics.SpriteCache;
+import Render.Renderer;
 
 /**
  * NormalBrick - loại gạch thông thường.
  * Destroyed sau 1 hit.
  */
 public class NormalBrick extends Brick {
-
+    private final BrickType type;
     /**
-     * Constructor nhận BrickType.
-     * Mỗi màu BrickType khác nhau sẽ có điểm và sprite riêng.
+     * Constructor nhận BrickType, vị trí và kích thước.
      */
-    public NormalBrick(BrickType type) {
-        super(type);
-        this.hp = 1; // Vỡ sau 1 hit
+    public NormalBrick(BrickType type, double x, double y, double width, double height) {
+        super(x, y, width, height, 1); // 1 hit để phá hủy
+        this.type = type;
+    }
+    
+    /**
+     * Update method - không cần làm gì cho normal brick.
+     */
+    @Override
+    public void update() {
+        // Normal brick không có animation
     }
 
     /**
@@ -23,13 +29,12 @@ public class NormalBrick extends Brick {
      */
     @Override
     public void render(Renderer renderer) {
-        renderer.drawSprite(SpriteCache.getBrickSprite(type), x, y);
+        renderer.drawSprite(type.getSpriteName(), getX(), getY());
     }
 
     /**
      * Trả về điểm dựa trên BrickType.
      */
-    @Override
     public int getScore() {
         return type.getBaseScore();
     }

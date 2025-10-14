@@ -1,56 +1,77 @@
 package Objects.Bricks;
 
-import Engine.PowerUpManager;
 import Render.Animation;
 import Render.Renderer;
 import Utils.AnimationFactory;
-import Objects.Core.GameObject;
+import Utils.Constants;
+import Engine.PowerUpManager;
 import GeometryPrimitives.Point;
 import GeometryPrimitives.Rectangle;
 
 /**
- * Represents a Silver brick that takes 2 hits to destroy and shows a crack animation.
+ * Silver Brick - takes 2 hits to destroy with crack animation.
+ *
+ * Behavior:
+ * - HP = 2 (requires 2 hits)
+ * - First hit: starts crack animation (10 frames, 50ms each)
+ * - Second hit: destroys brick and spawns powerup
+ * - Collision remains active during animation
+ *
+ * @author SteveHoang aka BoizSocSon
  */
 public class SilverBrick extends Brick {
     private final Animation crackAnimation;
     private int currentHP;
-    private double x;
-    private double y;
 
     /**
      * Creates a new SilverBrick at the specified position.
-     * @param x X-coordinate of the brick
-     * @param y Y-coordinate of the brick
+     *
+     * @param x X-coordinate (top-left corner)
+     * @param y Y-coordinate (top-left corner)
+     * @param width Brick width (typically Constants.Bricks.BRICK_WIDTH)
+     * @param height Brick height (typically Constants.Bricks.BRICK_HEIGHT)
      */
-    public SilverBrick(double x, double y) {
-        this.x = x;
-        this.y = y;
+    public SilverBrick(double x, double y, double width, double height) {
+        super(x, y, width, height, 2); // HP = 2
         this.currentHP = 2;
         this.crackAnimation = AnimationFactory.createBrickCrackAnimation();
     }
 
     /**
      * Handles the brick being hit by a ball.
-     * First hit starts crack animation, second hit destroys the brick.
+     *
+     * Logic:
+     * - Decrements HP
+     * - HP == 1: starts crack animation (does NOT loop)
+     * - HP == 0: destroys brick
+     *
+     * Thread-safe for rapid consecutive hits.
      */
     @Override
     public void takeHit() {
-        currentHP--;
-        
-        if (currentHP == 1) {
-            crackAnimation.start();
+        if (currentHP <= 0) {
+            return; // Already destroyed, ignore additional hits
         }
-        
-        if (currentHP == 0) {
+
+        currentHP--;
+
+        if (currentHP == 1) {
+            // Start crack animation on first hit
+            crackAnimation.play();
+        } else if (currentHP == 0) {
+            // Destroy on second hit
             destroy();
         }
     }
 
     /**
-     * Updates the brick's state, including crack animation if playing.
+     * Updates the brick's state each frame.
+     *
+     * Must be called every frame to advance crack animation.
      */
     @Override
     public void update() {
+        // Update crack animation if it's playing
         if (crackAnimation != null && crackAnimation.isPlaying()) {
             crackAnimation.update();
         }
@@ -58,71 +79,86 @@ public class SilverBrick extends Brick {
 
     /**
      * Gets the collision bounds of this brick.
-     * @return Rectangle representing the brick's bounds
+     *
+     * Collision remains active during crack animation to prevent
+     * ball from passing through.
+     *
+     * @return Rectangle representing the brick's collision box
      */
     @Override
     public Rectangle getBounds() {
-        return new Rectangle(x, y, 60, 20); // Assuming standard brick size
+        return new Rectangle(new Point(getX(), getY()), getWidth(), getHeight());
     }
 
     /**
-     * Renders the brick.
-     * Shows normal sprite at full health, crack animation when damaged.
-     * @param renderer The renderer to use
+     * Renders the brick with appropriate sprite.
+     *
+     * Rendering logic:
+     * - HP == 2: normal silver brick sprite
+     * - HP == 1: current frame of crack animation
+     * - HP == 0: don't render (brick is destroyed)
+     *
+     * @param renderer The renderer to use for drawing
      */
     @Override
     public void render(Renderer renderer) {
         if (currentHP == 2) {
-            renderer.drawSprite(BrickType.SILVER.getSpriteName(), x, y);
+            // Full health: render normal silver brick sprite
+            renderer.drawSprite(BrickType.SILVER.getSpriteName(), getX(), getY());
         } else if (currentHP == 1 && crackAnimation != null) {
-            renderer.drawSprite(crackAnimation.getCurrentFrame(), x, y);
+            // Damaged: render crack animation's current frame
+            renderer.drawImage(crackAnimation.getCurrentFrame(), getX(), getY());
         }
+        // currentHP == 0: don't render (destroyed)
     }
 
     /**
      * Handles brick destruction.
-     * Spawns a random power-up when destroyed.
+     *
+     * Actions:
+     * 1. Spawns random powerup at brick's center position
+     * 2. Marks brick as not alive (for removal from game)
      */
     @Override
     public void destroy() {
-        if (PowerUpManager.getInstance() != null) {
-            PowerUpManager.getInstance().spawnRandomPowerUp(x, y);
+        // Spawn powerup at brick's center
+        double centerX = getX() + getWidth() / 2.0;
+        double centerY = getY() + getHeight() / 2.0;
+
+        PowerUpManager manager = PowerUpManager.getInstance();
+        if (manager != null) {
+            manager.spawnFromBrick(centerX, centerY, BrickType.SILVER);
         }
-        setDestroyed(true);
+
+        // Mark as destroyed (parent class handles alive flag)
+        super.destroy();
     }
 
     /**
      * Checks if this brick has been destroyed.
-     * @return true if the brick is destroyed, false otherwise
+     *
+     * @return true if HP <= 0, false otherwise
      */
     @Override
     public boolean isDestroyed() {
-        return currentHP <= 0;
+        return currentHP <= 0 || !isAlive();
     }
 
-    @Override
-    public double getX() {
-        return x;
+    /**
+     * Gets current hit points (for debugging/testing).
+     *
+     * @return Current HP (2, 1, or 0)
+     */
+    public int getCurrentHP() {
+        return currentHP;
     }
 
-    @Override
-    public double getY() {
-        return y;
-    }
-
-    @Override
-    public void setX(double x) {
-        this.x = x;
-    }
-
-    @Override
-    public void setY(double y) {
-        this.y = y;
-    }
-
-    private void setDestroyed(boolean destroyed) {
-        if (destroyed) {
-            currentHP = 0;
-        }
+    /**
+     * Checks if crack animation is currently playing.
+     *
+     * @return true if animation is active
+     */
+    public boolean isCrackAnimationPlaying() {
+        return crackAnimation != null && crackAnimation.isPlaying();
     }
 }

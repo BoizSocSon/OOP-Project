@@ -2,6 +2,7 @@ package Engine;
 
 import Objects.GameEntities.Ball;
 import Objects.GameEntities.Paddle;
+import Objects.Bricks.BrickType;
 import Objects.Bricks.Brick;
 import Objects.Bricks.NormalBrick;
 import Objects.Bricks.SilverBrick;
@@ -88,9 +89,9 @@ public class GameManager {
                 double x = startX + c * (brickW + hSpacing);
                 double y = startY + r * (brickH + vSpacing);
                 if (rnd.nextBoolean()) {
-                    bricks.add(new NormalBrick(x, y, brickW, brickH));
+                    bricks.add(new NormalBrick(BrickType.BLUE, x, y, brickW, brickH));
                 } else {
-                    bricks.add(new SilverBrick(x, y, brickW, brickH, 2));
+                    bricks.add(new SilverBrick(x, y, brickW, brickH));
                 }
             }
         }

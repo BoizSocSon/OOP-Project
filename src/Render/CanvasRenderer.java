@@ -63,4 +63,19 @@ public class CanvasRenderer implements Renderer {
         gc.setFont(javafx.scene.text.Font.font(18));
         gc.fillText(text, x, y);
     }
+    
+    @Override
+    public void drawImage(javafx.scene.image.Image image, double x, double y) {
+        if (image != null) {
+            gc.drawImage(image, x, y);
+        }
+    }
+    
+    @Override
+    public void drawSprite(String spriteName, double x, double y) {
+        javafx.scene.image.Image sprite = Utils.SpriteCache.getInstance().get(spriteName);
+        if (sprite != null) {
+            gc.drawImage(sprite, x, y);
+        }
+    }
 }
