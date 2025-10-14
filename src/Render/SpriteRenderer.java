@@ -31,20 +31,21 @@ import javafx.scene.transform.Rotate;
  * - Được gọi bởi các phương thức GameObject.render()
  * - Xử lý tất cả thao tác vẽ Image của JavaFX
  *
+ * Tác giả: SteveHoang aka BoizSocSon
  */
 public class SpriteRenderer {
-
-    private final GraphicsContext gc; // GraphicsContext dùng để vẽ trên Canvas
-
+    
+    private final GraphicsContext gc;
+    
     /**
      * Tạo một SpriteRenderer với GraphicsContext chỉ định.
      *
      * @param gc GraphicsContext của JavaFX để vẽ
      */
     public SpriteRenderer(GraphicsContext gc) {
-        this.gc = gc; // Lưu lại tham chiếu GC để dùng cho mọi thao tác vẽ
+        this.gc = gc;
     }
-
+    
     /**
      * Vẽ một sprite tại vị trí chỉ định với kích thước gốc.
      *
@@ -63,12 +64,12 @@ public class SpriteRenderer {
     public void drawSprite(Image img, double x, double y) {
         if (img == null) {
             System.err.println("SpriteRenderer.drawSprite: Image is null");
-            return; // Tránh NPE khi ảnh chưa sẵn sàng
+            return;
         }
-
-        gc.drawImage(img, x, y); // Vẽ ảnh với kích thước gốc tại (x, y)
+        
+        gc.drawImage(img, x, y);
     }
-
+    
     /**
      * Vẽ một sprite tại vị trí chỉ định với kích thước tùy chỉnh.
      *
@@ -92,10 +93,10 @@ public class SpriteRenderer {
             System.err.println("SpriteRenderer.drawSprite: Image is null");
             return;
         }
-
-        gc.drawImage(img, x, y, w, h); // Vẽ ảnh theo kích thước tùy chỉnh (có thể méo)
+        
+        gc.drawImage(img, x, y, w, h);
     }
-
+    
     /**
      * Vẽ một sprite xoay quanh tâm.
      *
@@ -126,25 +127,25 @@ public class SpriteRenderer {
             System.err.println("SpriteRenderer.drawSpriteRotated: Image is null");
             return;
         }
-
+        
         // Lưu trạng thái biến đổi hiện tại
-        gc.save(); // Bắt đầu một "scope" transform an toàn
-
+        gc.save();
+        
         // Tạo phép xoay
-        Rotate rotate = new Rotate(angle, x + img.getWidth() / 2, y + img.getHeight() / 2); // Xoay quanh tâm ảnh
+        Rotate rotate = new Rotate(angle, x + img.getWidth() / 2, y + img.getHeight() / 2);
         gc.setTransform(
-                rotate.getMxx(), rotate.getMyx(),
-                rotate.getMxy(), rotate.getMyy(),
-                rotate.getTx(), rotate.getTy()
-        ); // Áp dụng ma trận xoay vào GC
-
+            rotate.getMxx(), rotate.getMyx(),
+            rotate.getMxy(), rotate.getMyy(),
+            rotate.getTx(), rotate.getTy()
+        );
+        
         // Vẽ sprite
-        gc.drawImage(img, x, y); // Vẽ dưới transform đã áp dụng
-
+        gc.drawImage(img, x, y);
+        
         // Khôi phục phép biến đổi
-        gc.restore(); // Trả GC về trạng thái trước khi xoay
+        gc.restore();
     }
-
+    
     /**
      * Vẽ một sprite với độ trong suốt (pha trộn alpha).
      *
@@ -174,23 +175,23 @@ public class SpriteRenderer {
             System.err.println("SpriteRenderer.drawSpriteWithAlpha: Image is null");
             return;
         }
-
+        
         // Giới hạn alpha trong khoảng hợp lệ
-        alpha = Math.max(0.0, Math.min(1.0, alpha)); // Clamp 0..1
-
+        alpha = Math.max(0.0, Math.min(1.0, alpha));
+        
         // Lưu alpha hiện tại
-        double oldAlpha = gc.getGlobalAlpha(); // Ghi lại để khôi phục sau
-
+        double oldAlpha = gc.getGlobalAlpha();
+        
         // Đặt alpha mới
-        gc.setGlobalAlpha(alpha); // Bật vẽ trong suốt theo mức alpha
-
+        gc.setGlobalAlpha(alpha);
+        
         // Vẽ sprite
         gc.drawImage(img, x, y);
-
+        
         // Khôi phục alpha
-        gc.setGlobalAlpha(oldAlpha); // Trả về alpha cũ, tránh ảnh hưởng các lần vẽ sau
+        gc.setGlobalAlpha(oldAlpha);
     }
-
+    
     /**
      * Vẽ một sprite theo tỉ lệ đồng nhất (giữ nguyên tỉ lệ khung hình).
      *
@@ -223,19 +224,19 @@ public class SpriteRenderer {
             System.err.println("SpriteRenderer.drawSpriteScaled: Image is null");
             return;
         }
-
+        
         // Tính toán kích thước sau khi scale
-        double scaledWidth = img.getWidth() * scale;  // W sau scale
-        double scaledHeight = img.getHeight() * scale; // H sau scale
-
+        double scaledWidth = img.getWidth() * scale;
+        double scaledHeight = img.getHeight() * scale;
+        
         // Căn giữa sprite đã scale
-        double drawX = x - scaledWidth / 2.0; // Dời về top-left để tâm trùng (x,y)
+        double drawX = x - scaledWidth / 2.0;
         double drawY = y - scaledHeight / 2.0;
-
+        
         // Vẽ sprite đã scale
-        gc.drawImage(img, drawX, drawY, scaledWidth, scaledHeight); // Giữ nguyên tỉ lệ
+        gc.drawImage(img, drawX, drawY, scaledWidth, scaledHeight);
     }
-
+    
     /**
      * Vẽ một sprite với kích thước cụ thể (width và height riêng biệt).
      *
@@ -260,10 +261,10 @@ public class SpriteRenderer {
             System.err.println("SpriteRenderer.drawSpriteScaled: Image is null");
             return;
         }
-
-        gc.drawImage(img, x, y, width, height); // Scale không đồng nhất theo W/H
+        
+        gc.drawImage(img, x, y, width, height);
     }
-
+    
     /**
      * Vẽ một sprite với các phép biến đổi kết hợp (tỉ lệ, xoay, alpha).
      *
@@ -288,55 +289,55 @@ public class SpriteRenderer {
      * @param angle Góc xoay (độ)
      * @param alpha Độ trong suốt (0.0 đến 1.0)
      */
-    public void drawSpriteTransformed(Image img, double x, double y,
-                                      double scale, double angle, double alpha) {
+    public void drawSpriteTransformed(Image img, double x, double y, 
+                                     double scale, double angle, double alpha) {
         if (img == null) {
             System.err.println("SpriteRenderer.drawSpriteTransformed: Image is null");
             return;
         }
-
+        
         // Lưu trạng thái
-        gc.save(); // Bảo toàn transform + alpha hiện tại
-
+        gc.save();
+        
         // Áp dụng alpha
-        alpha = Math.max(0.0, Math.min(1.0, alpha)); // Clamp 0..1
-        gc.setGlobalAlpha(alpha); // Thiết lập độ trong suốt
-
+        alpha = Math.max(0.0, Math.min(1.0, alpha));
+        gc.setGlobalAlpha(alpha);
+        
         // Tính toán kích thước sau khi scale
-        double scaledWidth = img.getWidth() * scale;  // W sau scale
-        double scaledHeight = img.getHeight() * scale; // H sau scale
-
+        double scaledWidth = img.getWidth() * scale;
+        double scaledHeight = img.getHeight() * scale;
+        
         // Tạo phép xoay quanh tâm
         double centerX = x;
         double centerY = y;
-        Rotate rotate = new Rotate(angle, centerX, centerY); // Xoay quanh (x, y)
+        Rotate rotate = new Rotate(angle, centerX, centerY);
         gc.setTransform(
-                rotate.getMxx(), rotate.getMyx(),
-                rotate.getMxy(), rotate.getMyy(),
-                rotate.getTx(), rotate.getTy()
-        ); // Áp ma trận xoay
-
+            rotate.getMxx(), rotate.getMyx(),
+            rotate.getMxy(), rotate.getMyy(),
+            rotate.getTx(), rotate.getTy()
+        );
+        
         // Vẽ sprite đã scale căn giữa
-        double drawX = centerX - scaledWidth / 2.0; // Tính toạ độ top-left để tâm khớp (x,y)
+        double drawX = centerX - scaledWidth / 2.0;
         double drawY = centerY - scaledHeight / 2.0;
-        gc.drawImage(img, drawX, drawY, scaledWidth, scaledHeight); // Vẽ với transform + alpha
-
+        gc.drawImage(img, drawX, drawY, scaledWidth, scaledHeight);
+        
         // Khôi phục trạng thái
-        gc.restore(); // Kết thúc: GC trở về như trước khi vẽ
+        gc.restore();
     }
-
+    
     // ==================== ANIMATION RENDERING ====================
-
+    
     /**
      * Vẽ một Animation object (được sử dụng cho PowerUps và SilverBrick).
-     *
+     * 
      * Method này vẽ frame hiện tại của animation tại vị trí chỉ định.
      * Animation phải được update() ở nơi khác trước khi render.
-     *
+     * 
      * Sử dụng:
      * - PowerUp falling animation (xoay liên tục)
      * - SilverBrick crack animation (1 lần)
-     *
+     * 
      * @param animation Animation object chứa frames
      * @param x Tọa độ X (top-left)
      * @param y Tọa độ Y (top-left)
@@ -346,18 +347,18 @@ public class SpriteRenderer {
             System.err.println("SpriteRenderer.drawAnimation: Animation is null");
             return;
         }
-
-        Image currentFrame = animation.getCurrentFrame(); // Lấy frame hiện hành để vẽ
+        
+        Image currentFrame = animation.getCurrentFrame();
         if (currentFrame != null) {
-            drawSprite(currentFrame, x, y); // Tận dụng hàm vẽ cơ bản
+            drawSprite(currentFrame, x, y);
         }
     }
-
+    
     /**
      * Vẽ một Animation object với width và height cụ thể.
-     *
+     * 
      * Dùng khi cần scale animation về kích thước khác với sprite gốc.
-     *
+     * 
      * @param animation Animation object chứa frames
      * @param x Tọa độ X (top-left)
      * @param y Tọa độ Y (top-left)
@@ -369,19 +370,19 @@ public class SpriteRenderer {
             System.err.println("SpriteRenderer.drawAnimation: Animation is null");
             return;
         }
-
-        Image currentFrame = animation.getCurrentFrame(); // Lấy frame hiện hành
+        
+        Image currentFrame = animation.getCurrentFrame();
         if (currentFrame != null) {
-            drawSprite(currentFrame, x, y, width, height); // Vẽ với W/H mong muốn
+            drawSprite(currentFrame, x, y, width, height);
         }
     }
-
+    
     /**
      * Vẽ một Animation object với rotation (dùng cho PowerUp rơi).
-     *
+     * 
      * PowerUp sẽ vừa rơi xuống vừa xoay animation frame, tạo hiệu ứng
      * chuyển động mượt mà và bắt mắt.
-     *
+     * 
      * @param animation Animation object chứa frames
      * @param x Tọa độ X (center)
      * @param y Tọa độ Y (center)
@@ -392,10 +393,10 @@ public class SpriteRenderer {
             System.err.println("SpriteRenderer.drawAnimationRotated: Animation is null");
             return;
         }
-
-        Image currentFrame = animation.getCurrentFrame(); // Lấy frame hiện hành
+        
+        Image currentFrame = animation.getCurrentFrame();
         if (currentFrame != null) {
-            drawSpriteRotated(currentFrame, x, y, angle); // Vẽ frame dưới dạng xoay quanh tâm
+            drawSpriteRotated(currentFrame, x, y, angle);
         }
     }
 }

@@ -7,8 +7,8 @@ import Objects.Bricks.Brick;
 import Objects.Bricks.NormalBrick;
 import Objects.Bricks.SilverBrick;
 import GeometryPrimitives.Point;
-import GeometryPrimitives.Rectangle;
 import GeometryPrimitives.Velocity;
+import Utils.Constants;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +34,9 @@ public class GameManager {
     public Paddle paddle;
     public Ball ball;
     public List<Brick> bricks = new ArrayList<>();
+    
+    // PowerUp Manager
+    private PowerUpManager powerUpManager;
 
     public int width;
     public int height;
@@ -46,12 +49,21 @@ public class GameManager {
 
     /**
      * Tạo GameManager với kích thước vùng chơi.
+     * 
+     * LƯU Ý: width và height là kích thước PLAY AREA (không bao gồm UI bar).
+     * CanvasRenderer sẽ thêm offset khi render.
      *
-     * @param width  chiều rộng vùng chơi (pixel)
-     * @param height chiều cao vùng chơi (pixel)
+     * @param width  chiều rộng vùng chơi (pixel) - thường là 600
+     * @param height chiều cao vùng chơi (pixel) - thường là 650 (800 - 150 UI bar)
      */
     public GameManager(int width, int height) {
-        this.width = width; this.height = height;
+        this.width = width; 
+        this.height = height;
+        
+        // Initialize PowerUpManager
+        this.powerUpManager = PowerUpManager.getInstance();
+        this.powerUpManager.setGameManager(this);
+        
         initDemo();
     }
 
@@ -60,27 +72,32 @@ public class GameManager {
      * Phương thức này được dùng bởi constructor và khi reset game.
      */
     private void initDemo() {
-        // Brick grid parameters
-        int cols = 6;
-        int rows = 3;
-        double brickW = 60.0;
-        double brickH = 20.0;
-        double hSpacing = 5.0; // khoảng cách ngang giữa các viên gạch
-        double vSpacing = 5.0; // khoảng cách dọc giữa các hàng gạch
+        // Brick grid parameters - use actual sprite dimensions
+        int cols = 13;
+        int rows = 4;
+        double brickW = Constants.Bricks.BRICK_WIDTH; // 32px
+        double brickH = Constants.Bricks.BRICK_HEIGHT; // 21px
+        double hSpacing = Constants.Bricks.BRICK_H_SPACING; // 2px
+        double vSpacing = Constants.Bricks.BRICK_V_SPACING; // 2px
 
-        // paddle nên có chiều rộng gấp đôi viên gạch và chiều cao bằng một nửa viên gạch
-        double paddleW = brickW * 2.0;
-        double paddleH = Math.max(4.0, brickH / 2.0);
-        paddle = new Paddle((width - paddleW) / 2.0, height - 40, paddleW, paddleH, 6);
+        // Paddle - use actual sprite dimensions
+        double paddleW = Constants.Physics.PADDLE_WIDTH; // 79px
+        double paddleH = Constants.Physics.PADDLE_HEIGHT; // 20px
+        paddle = new Paddle((width - paddleW) / 2.0, height - 60, paddleW, paddleH, Constants.Physics.PADDLE_SPEED);
+        
+        // Trigger materialize animation when entering level
+        paddle.playMaterializeAnimation();
 
-        // bóng ban đầu đặt ở giữa phía trên paddle và dính (attached)
-        ball = new Ball((width/2.0) - 8, height - 60, 8, new Velocity(0, 0));
+        // Ball - use actual sprite dimensions (10x10, radius=5)
+        double ballSize = Constants.Physics.BALL_SIZE; // 10px
+        double ballRadius = Constants.Physics.BALL_RADIUS; // 5px
+        ball = new Ball((width/2.0) - ballRadius, height - 80, ballRadius, new Velocity(0, 0));
         ballAttached = true;
 
-        // compute centered start X for the whole grid
+        // Compute centered start X for the whole grid
         double totalWidth = cols * brickW + (cols - 1) * hSpacing;
         double startX = (width - totalWidth) / 2.0;
-        double startY = 50.0;
+        double startY = Constants.Bricks.BRICK_START_Y; // 100px from top
 
         java.util.Random rnd = new java.util.Random();
         bricks.clear();
@@ -119,7 +136,6 @@ public class GameManager {
         ball.update();
 
         // wall collision for ball
-        Rectangle bounds = new Rectangle(new Point(0,0), width, height);
         if (ball.getBounds().getUpperLeft().getX() <= 0 || ball.getBounds().getUpperLeft().getX() + ball.getBounds().getWidth() >= width) {
             ball.setVelocity(new Velocity(-ball.getVelocity().getDx(), ball.getVelocity().getDy()));
         }
@@ -158,9 +174,18 @@ public class GameManager {
                     score += nextBrickScore;
                     // increment nextBrickScore depending on type
                     if (b instanceof SilverBrick) nextBrickScore += 20; else nextBrickScore += 10;
+                    
+                    // Spawn PowerUp from destroyed brick (30% chance)
+                    double brickCenterX = b.getBounds().getUpperLeft().getX() + b.getBounds().getWidth() / 2.0;
+                    double brickCenterY = b.getBounds().getUpperLeft().getY() + b.getBounds().getHeight() / 2.0;
+                    // Use a default brick type for spawning (actual type doesn't affect spawn rate)
+                    powerUpManager.spawnFromBrick(brickCenterX, brickCenterY, BrickType.BLUE);
                 }
             }
         }
+        
+        // Update PowerUpManager (falling powerups and collision detection)
+        powerUpManager.update(paddle);
 
         // check win: if no bricks alive, player wins
         boolean anyAlive = false;
@@ -174,14 +199,22 @@ public class GameManager {
 
         // ball vs paddle
         if (ball.checkCollisionWithRect(paddle.getBounds())) {
-            // Tùy chọn: điều chỉnh phản xạ dựa trên vị trí chạm trên paddle để thay đổi góc
-            // compute offset from paddle center
-            double paddleCenterX = paddle.getBounds().getUpperLeft().getX() + paddle.getBounds().getWidth() / 2.0;
-            double diff = ball.getCenter().getX() - paddleCenterX;
-            double norm = diff / (paddle.getBounds().getWidth() / 2.0); // -1..1
-            // adjust dx proportionally (small factor)
-            double baseSpeedX = ball.getVelocity().getDx();
-            ball.setVelocity(new Velocity(baseSpeedX + norm * 1.5, ball.getVelocity().getDy()));
+            // Check if catch mode is enabled
+            if (paddle.isCatchModeEnabled() && !ballAttached) {
+                // Catch the ball - attach it to paddle
+                ballAttached = true;
+                ball.setVelocity(new Velocity(0, 0)); // Stop ball movement
+                System.out.println("GameManager: Ball caught by paddle!");
+            } else {
+                // Normal paddle reflection
+                // Adjust reflection based on hit position on paddle to change angle
+                double paddleCenterX = paddle.getBounds().getUpperLeft().getX() + paddle.getBounds().getWidth() / 2.0;
+                double diff = ball.getCenter().getX() - paddleCenterX;
+                double norm = diff / (paddle.getBounds().getWidth() / 2.0); // -1..1
+                // adjust dx proportionally (small factor)
+                double baseSpeedX = ball.getVelocity().getDx();
+                ball.setVelocity(new Velocity(baseSpeedX + norm * 1.5, ball.getVelocity().getDy()));
+            }
         }
 
         // paddle bounds clamp
@@ -215,4 +248,169 @@ public class GameManager {
         ball.setVelocity(new Velocity(0, -2));
     }
 
+    // ============================================================
+    // PowerUp Effect Methods
+    // ============================================================
+    
+    /**
+     * Enables catch mode on paddle (CATCH PowerUp).
+     * When enabled, ball sticks to paddle on collision.
+     */
+    public void enableCatchMode() {
+        paddle.setCatchModeEnabled(true);
+        System.out.println("GameManager: Catch mode enabled");
+    }
+    
+    /**
+     * Disables catch mode on paddle.
+     */
+    public void disableCatchMode() {
+        paddle.setCatchModeEnabled(false);
+        System.out.println("GameManager: Catch mode disabled");
+    }
+    
+    /**
+     * Gets current ball count.
+     * @return Number of balls (currently always 1)
+     */
+    public int getBallCount() {
+        return 1; // TODO: Support multiple balls in future
+    }
+    
+    /**
+     * Duplicates all balls (DUPLICATE PowerUp).
+     * TODO: Implement multi-ball support with List<Ball>.
+     */
+    public void duplicateBalls() {
+        System.out.println("GameManager: Balls duplicated (multi-ball support coming soon)");
+        // TODO: When multi-ball is implemented:
+        // - Create copy of current ball with ±45° angle
+        // - Add to balls list
+        // - Update collision detection to handle multiple balls
+    }
+    
+    /**
+     * Expands paddle width (EXPAND PowerUp).
+     * @param multiplier Width multiplier (e.g., 1.5)
+     */
+    public void expandPaddle(double multiplier) {
+        double currentWidth = paddle.getWidth();
+        double newWidth = paddle.getOriginalWidth() * multiplier;
+        paddle.setWidth(newWidth);
+        paddle.setState(Objects.GameEntities.PaddleState.WIDE); // Trigger WIDE animation
+        System.out.println("GameManager: Paddle expanded from " + currentWidth + " to " + newWidth);
+    }
+    
+    /**
+     * Reverts paddle to original size.
+     */
+    public void revertPaddleSize() {
+        paddle.setWidth(paddle.getOriginalWidth());
+        paddle.setState(Objects.GameEntities.PaddleState.NORMAL); // Back to NORMAL
+        System.out.println("GameManager: Paddle size reverted to " + paddle.getOriginalWidth());
+    }
+    
+    /**
+     * Enables laser shooting on paddle (LASER PowerUp).
+     * @param shots Number of laser shots available
+     */
+    public void enableLaser(int shots) {
+        paddle.setLaserEnabled(true);
+        paddle.setLaserShots(shots);
+        System.out.println("GameManager: Laser enabled with " + shots + " shots");
+    }
+    
+    /**
+     * Disables laser shooting on paddle.
+     */
+    public void disableLaser() {
+        paddle.setLaserEnabled(false);
+        paddle.setLaserShots(0);
+        System.out.println("GameManager: Laser disabled");
+    }
+    
+    /**
+     * Gets current number of lives.
+     * @return Current lives count
+     */
+    public int getLives() {
+        return lives;
+    }
+    
+    /**
+     * Adds one life (LIFE PowerUp).
+     * Maximum 5 lives.
+     */
+    public void addLife() {
+        if (lives < Constants.GameRules.MAX_LIVES) {
+            lives++;
+            System.out.println("GameManager: Life added! Lives: " + lives);
+        } else {
+            System.out.println("GameManager: Max lives reached (" + Constants.GameRules.MAX_LIVES + ")");
+        }
+    }
+    
+    /**
+     * Slows down all balls (SLOW PowerUp).
+     * @param multiplier Speed multiplier (e.g., 0.7)
+     */
+    public void slowBalls(double multiplier) {
+        // Get current velocity
+        Velocity currentVel = ball.getVelocity();
+        double newDx = currentVel.getDx() * multiplier;
+        double newDy = currentVel.getDy() * multiplier;
+        ball.setVelocity(new Velocity(newDx, newDy));
+        System.out.println("GameManager: Balls slowed by " + multiplier + "x");
+    }
+    
+    /**
+     * Restores original ball speed (removes SLOW effect).
+     * Calculates original speed from current velocity direction.
+     */
+    public void restoreBallSpeed() {
+        // Get current velocity direction
+        Velocity currentVel = ball.getVelocity();
+        double speed = Math.hypot(currentVel.getDx(), currentVel.getDy());
+        
+        // If speed is very slow (< 1.5), restore to initial speed
+        if (speed < Constants.Physics.BALL_MIN_SPEED) {
+            double angle = Math.atan2(currentVel.getDy(), currentVel.getDx());
+            double newDx = Math.cos(angle) * Constants.Physics.BALL_INITIAL_SPEED;
+            double newDy = Math.sin(angle) * Constants.Physics.BALL_INITIAL_SPEED;
+            ball.setVelocity(new Velocity(newDx, newDy));
+            System.out.println("GameManager: Ball speed restored to " + Constants.Physics.BALL_INITIAL_SPEED);
+        } else {
+            // Calculate restoration multiplier (inverse of SLOW_MULTIPLIER)
+            double restoreMultiplier = 1.0 / Constants.PowerUps.SLOW_MULTIPLIER;
+            double newDx = currentVel.getDx() * restoreMultiplier;
+            double newDy = currentVel.getDy() * restoreMultiplier;
+            ball.setVelocity(new Velocity(newDx, newDy));
+            System.out.println("GameManager: Ball speed restored by " + restoreMultiplier + "x");
+        }
+    }
+    
+    /**
+     * Warps to next level (WARP PowerUp).
+     * Clears all bricks and advances to next round.
+     * @return true if next level exists, false if last level
+     */
+    public boolean warpToNextLevel() {
+        // Clear all bricks
+        bricks.clear();
+        // Mark as won to trigger level transition
+        gameOver = true;
+        won = true;
+        System.out.println("GameManager: Warped to next level!");
+        return true;
+    }
+    
+    /**
+     * Gets the PowerUpManager instance.
+     * @return PowerUpManager instance
+     */
+    public PowerUpManager getPowerUpManager() {
+        return powerUpManager;
+    }
+
 }
+

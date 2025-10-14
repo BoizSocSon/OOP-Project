@@ -20,24 +20,30 @@ public class Constants {
         public static final double POWERUP_SPAWN_CHANCE = 0.3; // Tỉ lệ rơi ra vật phẩm khi phá gạch
     }
 
-    // 3. PHYSICS
+    // 3. PHYSICS & SPRITES DIMENSIONS
     public static class Physics {
-        public static final double BALL_RADIUS = 5.0; // Bán kính bóng (pixel)
+        // Ball dimensions (actual sprite size)
+        public static final double BALL_SIZE = 10.0; // 10x10px sprite
+        public static final double BALL_RADIUS = BALL_SIZE / 2.0; // 5.0px radius
         public static final double BALL_INITIAL_SPEED = 3.0; // Vận tốc ban đầu của bóng (pixel/frame)
         public static final double BALL_MIN_SPEED = 1.5; // Vận tốc tối thiểu của bóng (pixel/frame)
         public static final double BALL_MAX_SPEED = 6.0; // Vận tốc tối đa của bóng (pixel/frame)
         public static final double BALL_SPEED_INCREMENT = 0.1; // Tăng vận tốc mỗi khi bóng chạm gạch (pixel/frame)
 
-        public static final double PADDLE_WIDTH = 79.0; // Chiều rộng thanh đỡ (pixel)
-        public static final double PADDLE_HEIGHT = 20.0; // Chiều cao thanh đỡ (pixel)
+        // Paddle dimensions (actual sprite sizes)
+        public static final double PADDLE_WIDTH = 79.0; // 79x20px sprite (normal)
+        public static final double PADDLE_HEIGHT = 20.0; 
+        public static final double PADDLE_WIDE_WIDTH = 119.0; // 119x20px sprite (expanded)
+        public static final double PADDLE_LIFE_WIDTH = 43.0; // 43x17px sprite (lives display)
+        public static final double PADDLE_LIFE_HEIGHT = 17.0;
         public static final double PADDLE_SPEED = 6.0; // Vận tốc di chuyển của thanh đỡ (pixel/frame)
         public static final double PADDLE_MAX_ANGLE = 60.0; // Góc đỡ tối đa của thanh đỡ (độ)
     }
 
-    // 4. BRICKS
+    // 4. BRICKS (actual sprite dimensions)
     public static class Bricks {
-        public static final double BRICK_WIDTH = 43.0; // Chiều rộng gạch (pixel)
-        public static final double BRICK_HEIGHT = 21.0; // Chiều cao gạch (pixel)
+        public static final double BRICK_WIDTH = 32.0; // 32x21px sprite (all brick types)
+        public static final double BRICK_HEIGHT = 21.0;
         public static final double BRICK_H_SPACING = 2.0; // Khoảng cách ngang giữa các gạch (pixel)
         public static final double BRICK_V_SPACING = 2.0; // Khoảng cách dọc giữa các gạch (pixel)
         public static final double BRICK_START_Y = 100.0; // Vị trí Y bắt đầu của hàng gạch đầu tiên (pixel)
@@ -97,14 +103,24 @@ public class Constants {
         public static final String HIGHSCORE_FILE = "highscore.dat";
     }
 
-    // 11. BORDERS
+    // 11. BORDERS (actual sprite dimensions)
     public static class Borders {
-        public static final double BORDER_TOP_HEIGHT = 32.0; // Chiều cao viền trên (pixel)
-        public static final double BORDER_SIDE_WIDTH = 32.0; // Chiều rộng viền hai bên (pixel)
+        public static final double BORDER_TOP_WIDTH = 556.0; // edge_top: 556x22px sprite
+        public static final double BORDER_TOP_HEIGHT = 22.0;
+        public static final double BORDER_SIDE_WIDTH = 22.0; // edge_left/right: 22x650px sprite
+        public static final double BORDER_SIDE_HEIGHT = 650.0;
         public static final double PLAY_AREA_X = BORDER_SIDE_WIDTH; // Vị trí X bắt đầu khu vực chơi (pixel)
         public static final double PLAY_AREA_Y = BORDER_TOP_HEIGHT; // Vị trí Y bắt đầu khu vực chơi (pixel)
         public static final double PLAY_AREA_WIDTH = Window.WINDOW_WIDTH - (BORDER_SIDE_WIDTH * 2.0); // Chiều ngang khu vực chơi (pixel)
         public static final double PLAY_AREA_HEIGHT = Window.WINDOW_HEIGHT - BORDER_TOP_HEIGHT; // Chiều cao khu vực chơi (pixel)
+    }
+    
+    // 12. UI SPRITES
+    public static class UISprites {
+        public static final double LOGO_WIDTH = 400.0; // logo: 400x145px sprite
+        public static final double LOGO_HEIGHT = 145.0;
+        public static final double LASER_BULLET_WIDTH = 6.0; // laser_bullet: 6x15px sprite
+        public static final double LASER_BULLET_HEIGHT = 15.0;
     }
 
     // 12. COLORS (fallbacks if sprites fail)
