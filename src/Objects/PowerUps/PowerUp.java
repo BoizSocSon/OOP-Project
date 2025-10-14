@@ -2,50 +2,112 @@ package Objects.PowerUps;
 
 import GeometryPrimitives.Point;
 import GeometryPrimitives.Rectangle;
+import GeometryPrimitives.Velocity;
 import Objects.Core.GameObject;
 import Objects.GameEntities.Paddle;
+import Render.Animation;
+import Render.Renderer;
+import Utils.AnimationFactory;
+import Utils.Constants;
 
 /**
- * Lớp cơ sở cho các power-up rơi từ viên gạch bị phá.
+ * Base class for power-ups that fall from destroyed bricks.
  *
- * Thuộc tính:
- * - Vị trí/kích thước (x,y,width,height).
- * - duration: thời lượng hiệu ứng (tính bằng frame hoặc đơn vị do game quyết định).
- * - active: cờ còn tồn tại trên bản đồ hay đã bị thu/huỷ.
+ * Design:
+ * - Each powerup has a type (PowerUpType enum)
+ * - Falls down with constant velocity
+ * - Has animated sprite (8 frames, looping)
+ * - Abstract methods for applying/removing effects
+ * 
+ * Lifecycle:
+ * 1. Spawned from brick at (x, y)
+ * 2. Falls down each frame
+ * 3. Collected by paddle → apply effect
+ * 4. If timed effect → schedule removal
+ * 5. Destroyed when off-screen or collected
+ * 
+ * @author SteveHoang aka BoizSocSon
  */
 public abstract class PowerUp implements GameObject {
-    private double x;
-    private double y;
-    private double width;
-    private double height;
-    private double duration; // frames
-    private boolean active = true;
+    protected double x;
+    protected double y;
+    protected final double width;
+    protected final double height;
+    protected final PowerUpType type;
+    protected final Velocity velocity;
+    protected final Animation animation;
+    protected boolean active = true;
 
-    public PowerUp(double x, double y, double width, double height, double duration) {
+    /**
+     * Creates a PowerUp at specified position.
+     * 
+     * @param x X-coordinate (top-left)
+     * @param y Y-coordinate (top-left)
+     * @param type PowerUpType enum value
+     */
+    public PowerUp(double x, double y, PowerUpType type) {
         this.x = x;
         this.y = y;
-        this.width = width;
-        this.height = height;
-        this.duration = duration;
+        this.type = type;
+        this.width = Constants.PowerUps.POWERUP_WIDTH;
+        this.height = Constants.PowerUps.POWERUP_HEIGHT;
+        
+        // Constant downward velocity
+        this.velocity = new Velocity(0, Constants.PowerUps.POWERUP_FALL_SPEED);
+        
+        // Load animated sprite
+        this.animation = AnimationFactory.createPowerUpAnimation(type);
+        this.animation.play();
     }
 
-    // Basic accessors for encapsulated fields
+    /**
+     * Updates powerup state each frame.
+     * 
+     * Actions:
+     * - Move down
+     * - Update animation
+     */
+    public void update() {
+        // Move down
+        Point currentPos = new Point(x, y);
+        Point newPos = velocity.applyToPoint(currentPos);
+        this.x = newPos.getX();
+        this.y = newPos.getY();
+        
+        // Update animation
+        if (animation != null) {
+            animation.update();
+        }
+    }
+
+    /**
+     * Renders the powerup.
+     * 
+     * @param renderer The renderer to use
+     */
+    public void render(Renderer renderer) {
+        if (animation != null && active) {
+            renderer.drawImage(animation.getCurrentFrame(), x, y);
+        }
+    }
+
+    // Accessors
     public double getX() { return x; }
     public double getY() { return y; }
     public double getWidth() { return width; }
     public double getHeight() { return height; }
-    public double getDuration() { return duration; }
+    public PowerUpType getType() { return type; }
     public boolean isActive() { return active; }
 
-    /** Áp dụng hiệu ứng cho thanh trượt (paddle) hoặc mục tiêu khác. */
+    /** Apply effect to paddle or game state. */
     public abstract void applyEffect(Paddle paddle);
 
-    /** Gỡ bỏ hiệu ứng khi hết thời gian hoặc khi power-up bị xóa. */
+    /** Remove effect when expired. */
     public abstract void removeEffect(Paddle paddle);
 
     @Override
     public Rectangle getBounds() {
-        return new Rectangle(new Point(x,y), width, height);
+        return new Rectangle(new Point(x, y), width, height);
     }
 
     @Override
@@ -58,3 +120,4 @@ public abstract class PowerUp implements GameObject {
         active = false;
     }
 }
+
