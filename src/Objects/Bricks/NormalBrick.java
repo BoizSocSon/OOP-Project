@@ -38,4 +38,12 @@ public class NormalBrick extends Brick {
     public int getScore() {
         return type.getBaseScore();
     }
+    
+    /**
+     * Gets the brick type for rendering.
+     * @return BrickType enum value
+     */
+    public BrickType getType() {
+        return type;
+    }
 }

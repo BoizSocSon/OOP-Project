@@ -1,6 +1,7 @@
 package ArkanoidGame;
 
 import Engine.GameManager;
+import Objects.PowerUps.PowerUp;
 import Render.CanvasRenderer;
 import Render.Renderer;
 import javafx.animation.AnimationTimer;
@@ -26,6 +27,8 @@ import javafx.stage.Stage;
 public class ArkanoidApp extends Application {
     private static final int WIDTH = 600;
     private static final int HEIGHT = 800;
+    private static final int UI_BAR_HEIGHT = 150; // UI bar phía trên
+    private static final int PLAY_AREA_HEIGHT = HEIGHT - UI_BAR_HEIGHT; // 650px
 
     private GameManager gameManager;
     private Renderer renderer;
@@ -45,7 +48,9 @@ public class ArkanoidApp extends Application {
     public void start(Stage stage) {
         Canvas canvas = new Canvas(WIDTH, HEIGHT);
         renderer = new CanvasRenderer(canvas);
-        gameManager = new GameManager(WIDTH, HEIGHT);
+        
+        // GameManager với PLAY_AREA dimensions (không bao gồm UI bar)
+        gameManager = new GameManager(WIDTH, PLAY_AREA_HEIGHT);
 
         Pane root = new Pane(canvas);
         Scene scene = new Scene(root);
@@ -74,19 +79,49 @@ public class ArkanoidApp extends Application {
             public void handle(long now) {
                 gameManager.update();
                 renderer.clear();
+                
+                // Draw top UI (logo, score, high score)
+                if (renderer instanceof CanvasRenderer) {
+                    ((CanvasRenderer) renderer).drawTopUI(gameManager.score, 91860); // TODO: Track high score
+                }
+                
+                // Draw borders around play area
+                if (renderer instanceof CanvasRenderer) {
+                    ((CanvasRenderer) renderer).drawBorders();
+                }
+                
+                // Draw game objects (inside play area with offset)
                 renderer.drawPaddle(gameManager.paddle);
                 renderer.drawBall(gameManager.ball);
-                for (var b : gameManager.bricks) if (b.isAlive()) renderer.drawBrick(b);
-                renderer.drawText("Score: " + gameManager.score, 10, 20);
-                renderer.drawText("Lives: " + gameManager.lives, 540, 20);
-                if (gameManager.gameOver) {
-                    if (gameManager.won) {
-                        renderer.drawText("You win! Score: " + gameManager.score, 220, 220);
-                    } else {
-                        renderer.drawText("Game Over. Score: " + gameManager.score, 200, 220);
-                    }
-                    renderer.drawText("Press 'R' to rerun game", 200, 260);
+                for (var b : gameManager.bricks) {
+                    if (b.isAlive()) renderer.drawBrick(b);
                 }
+                
+                // Draw PowerUps with flipbook animation
+                for (PowerUp powerUp : gameManager.getPowerUpManager().getActivePowerUps()) {
+                    renderer.drawPowerUp(powerUp);
+                }
+                
+                // Draw lives display at BOTTOM LEFT
+                if (renderer instanceof CanvasRenderer) {
+                    ((CanvasRenderer) renderer).drawLivesDisplay(gameManager.lives);
+                }
+                
+                // Draw game over / win message
+                if (gameManager.gameOver) {
+                    // Draw message in center of play area
+                    renderer.drawText("──────────────────────", 200, 200);
+                    if (gameManager.won) {
+                        renderer.drawText("★ YOU WIN! ★", 240, 230);
+                        renderer.drawText("Score: " + gameManager.score, 250, 260);
+                    } else {
+                        renderer.drawText("GAME OVER", 240, 230);
+                        renderer.drawText("Score: " + gameManager.score, 250, 260);
+                    }
+                    renderer.drawText("Press 'R' to restart", 220, 300);
+                    renderer.drawText("──────────────────────", 200, 320);
+                }
+                
                 renderer.present();
             }
         };

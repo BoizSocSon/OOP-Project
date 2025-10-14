@@ -1,5 +1,6 @@
 package Objects.PowerUps;
 
+import Engine.GameManager;
 import GeometryPrimitives.Point;
 import GeometryPrimitives.Rectangle;
 import GeometryPrimitives.Velocity;
@@ -36,6 +37,7 @@ public abstract class PowerUp implements GameObject {
     protected final PowerUpType type;
     protected final Velocity velocity;
     protected final Animation animation;
+    protected boolean collected = false;
     protected boolean active = true;
 
     /**
@@ -65,7 +67,7 @@ public abstract class PowerUp implements GameObject {
      * 
      * Actions:
      * - Move down
-     * - Update animation
+     * - Update animation frames (flipbook)
      */
     public void update() {
         // Move down
@@ -74,21 +76,67 @@ public abstract class PowerUp implements GameObject {
         this.x = newPos.getX();
         this.y = newPos.getY();
         
-        // Update animation
+        // Update animation (flipbook frames)
         if (animation != null) {
             animation.update();
         }
     }
 
     /**
-     * Renders the powerup.
+     * Renders the powerup using its current animation frame.
+     * 
+     * PowerUp animation is a flipbook (8 frames) that simulates
+     * rotation around horizontal axis.
      * 
      * @param renderer The renderer to use
      */
     public void render(Renderer renderer) {
         if (animation != null && active) {
-            renderer.drawImage(animation.getCurrentFrame(), x, y);
+            renderer.drawPowerUp(this);
         }
+    }
+
+    /**
+     * Gets the animation object for rendering.
+     * @return Animation containing 8 frames of powerup sprite
+     */
+    public Animation getAnimation() {
+        return animation;
+    }
+
+    /**
+     * Checks collision between this powerup and the paddle.
+     * Uses AABB (Axis-Aligned Bounding Box) collision detection.
+     * 
+     * Algorithm:
+     * - PowerUp falls and paddle moves horizontally
+     * - Collision occurs when rectangles overlap on both X and Y axes
+     * - No collision if any gap exists between rectangles
+     * 
+     * @param paddle The paddle to check collision with
+     * @return true if powerup intersects with paddle bounds
+     */
+    public boolean checkPaddleCollision(Paddle paddle) {
+        if (paddle == null || !active) {
+            return false;
+        }
+        
+        Rectangle powerUpBounds = getBounds();
+        Rectangle paddleBounds = paddle.getBounds();
+        
+        // AABB collision detection
+        // No collision if:
+        // - PowerUp right edge is left of paddle left edge
+        // - PowerUp left edge is right of paddle right edge
+        // - PowerUp bottom edge is above paddle top edge
+        // - PowerUp top edge is below paddle bottom edge
+        boolean noCollision = 
+            (powerUpBounds.getUpperLeft().getX() + powerUpBounds.getWidth() < paddleBounds.getUpperLeft().getX()) ||
+            (powerUpBounds.getUpperLeft().getX() > paddleBounds.getUpperLeft().getX() + paddleBounds.getWidth()) ||
+            (powerUpBounds.getUpperLeft().getY() + powerUpBounds.getHeight() < paddleBounds.getUpperLeft().getY()) ||
+            (powerUpBounds.getUpperLeft().getY() > paddleBounds.getUpperLeft().getY() + paddleBounds.getHeight());
+        
+        return !noCollision;
     }
 
     // Accessors
@@ -98,12 +146,38 @@ public abstract class PowerUp implements GameObject {
     public double getHeight() { return height; }
     public PowerUpType getType() { return type; }
     public boolean isActive() { return active; }
+    public boolean isCollected() { return collected; }
+    
+    /**
+     * Marks this powerup as collected by the paddle.
+     * Once collected, it stops falling and will be removed from active list.
+     */
+    public void collect() {
+        this.collected = true;
+        this.active = false;
+    }
 
-    /** Apply effect to paddle or game state. */
-    public abstract void applyEffect(Paddle paddle);
+    /**
+     * Applies the powerup effect to the game.
+     * This method must be implemented by each specific powerup subclass.
+     * 
+     * Examples:
+     * - CatchPowerUp: Enable catch mode on paddle
+     * - ExpandPaddlePowerUp: Increase paddle width
+     * - LifePowerUp: Add extra life to player
+     * 
+     * @param gameManager The game manager to apply effects to
+     */
+    public abstract void applyEffect(GameManager gameManager);
 
-    /** Remove effect when expired. */
-    public abstract void removeEffect(Paddle paddle);
+    /**
+     * Removes/reverts the powerup effect when it expires.
+     * Only relevant for timed effects (CATCH, EXPAND, LASER, SLOW).
+     * Instant effects (LIFE, DUPLICATE, WARP) don't need removal.
+     * 
+     * @param gameManager The game manager to remove effects from
+     */
+    public abstract void removeEffect(GameManager gameManager);
 
     @Override
     public Rectangle getBounds() {

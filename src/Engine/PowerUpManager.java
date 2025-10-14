@@ -1,11 +1,9 @@
 package Engine;
 
-import Objects.PowerUps.PowerUp;
-import Objects.PowerUps.PowerUpType;
+import Objects.PowerUps.*;
 import Objects.Bricks.BrickType;
 import Objects.GameEntities.Paddle;
 import Utils.Constants;
-import GeometryPrimitives.Rectangle;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -177,32 +175,42 @@ public class PowerUpManager {
     /**
      * Creates a PowerUp instance of the specified type.
      *
-     * Uses simple placeholder implementation until actual PowerUp subclasses
-     * (CatchPowerUp, ExpandPowerUp, etc.) are implemented.
+     * Factory method that instantiates the correct PowerUp subclass
+     * based on the type parameter.
      *
      * @param type PowerUpType to create
      * @param x X-coordinate
      * @param y Y-coordinate
-     * @return PowerUp instance
+     * @return PowerUp instance (specific subclass)
      */
     private PowerUp createPowerUp(PowerUpType type, double x, double y) {
-        // Temporary placeholder implementation
-        // TODO: Replace with actual subclass instantiation when implemented:
-        // case CATCH: return new CatchPowerUp(x, y);
-        // case EXPAND: return new ExpandPaddlePowerUp(x, y);
-        // etc.
-
-        return new PowerUp(x, y, type) {
-            @Override
-            public void applyEffect(Paddle paddle) {
-                // Placeholder - will be implemented in subclasses
-            }
-
-            @Override
-            public void removeEffect(Paddle paddle) {
-                // Placeholder - will be implemented in subclasses
-            }
-        };
+        switch (type) {
+            case CATCH:
+                return new CatchPowerUp(x, y);
+            
+            case DUPLICATE:
+                return new DuplicatePowerUp(x, y);
+            
+            case EXPAND:
+                return new ExpandPaddlePowerUp(x, y);
+            
+            case LASER:
+                return new LaserPowerUp(x, y);
+            
+            case LIFE:
+                return new LifePowerUp(x, y);
+            
+            case SLOW:
+                return new SlowBallPowerUp(x, y);
+            
+            case WARP:
+                return new WarpPowerUp(x, y);
+            
+            default:
+                // Fallback to EXPAND if unknown type
+                System.err.println("Unknown PowerUpType: " + type + ", defaulting to EXPAND");
+                return new ExpandPaddlePowerUp(x, y);
+        }
     }
 
     /**
@@ -237,10 +245,13 @@ public class PowerUpManager {
                 continue;
             }
 
-            // Check collision with paddle
-            if (checkPaddleCollision(powerUp, paddle)) {
-                // Apply effect to game
-                applyPowerUpEffect(powerUp, paddle);
+            // Check collision with paddle using PowerUp's own method
+            if (powerUp.checkPaddleCollision(paddle)) {
+                // Mark as collected
+                powerUp.collect();
+                
+                // Apply effect to game through GameManager
+                applyPowerUpEffect(powerUp);
 
                 // Schedule removal if it's a timed effect
                 if (!powerUp.getType().isInstant()) {
@@ -259,92 +270,21 @@ public class PowerUpManager {
     }
 
     /**
-     * Checks collision between powerup and paddle.
-     *
-     * Uses Rectangle.intersects() for AABB collision detection.
-     *
-     * @param powerUp The powerup to check
-     * @param paddle The paddle
-     * @return true if collision detected
-     */
-    private boolean checkPaddleCollision(PowerUp powerUp, Paddle paddle) {
-        Rectangle powerUpBounds = powerUp.getBounds();
-        Rectangle paddleBounds = paddle.getBounds();
-
-        // Simple AABB collision
-        return !(powerUpBounds.getUpperLeft().getX() + powerUpBounds.getWidth() < paddleBounds.getUpperLeft().getX() ||
-                 powerUpBounds.getUpperLeft().getX() > paddleBounds.getUpperLeft().getX() + paddleBounds.getWidth() ||
-                 powerUpBounds.getUpperLeft().getY() + powerUpBounds.getHeight() < paddleBounds.getUpperLeft().getY() ||
-                 powerUpBounds.getUpperLeft().getY() > paddleBounds.getUpperLeft().getY() + paddleBounds.getHeight());
-    }
-
-    /**
      * Applies the powerup effect to the game.
      *
-     * For instant effects (LIFE, DUPLICATE, WARP):
-     * - Apply immediately
-     *
-     * For timed effects (CATCH, EXPAND, LASER, SLOW):
-     * - Apply effect
-     * - Schedule removal after duration
+     * Delegates to the PowerUp's own applyEffect() method,
+     * passing the GameManager reference.
      *
      * @param powerUp The collected powerup
-     * @param paddle The player's paddle
      */
-    private void applyPowerUpEffect(PowerUp powerUp, Paddle paddle) {
-        PowerUpType type = powerUp.getType();
-
-        // TODO: Implement actual effect application through GameManager
-        // For now, just log the effect
-
+    private void applyPowerUpEffect(PowerUp powerUp) {
         if (gameManager == null) {
             System.err.println("PowerUpManager: GameManager not set, cannot apply effect");
             return;
         }
 
-        switch (type) {
-            case CATCH:
-                // Enable catch mode on paddle
-                // paddle.enableCatchMode(Constants.PowerUps.CATCH_DURATION);
-                System.out.println("Applied CATCH effect");
-                break;
-
-            case DUPLICATE:
-                // Duplicate ball(s)
-                // gameManager.duplicateBalls();
-                System.out.println("Applied DUPLICATE effect");
-                break;
-
-            case EXPAND:
-                // Expand paddle width
-                // paddle.expand(Constants.PowerUps.EXPAND_MULTIPLIER, Constants.PowerUps.EXPAND_DURATION);
-                System.out.println("Applied EXPAND effect");
-                break;
-
-            case LASER:
-                // Enable laser shooting
-                // paddle.enableLaser(Constants.PowerUps.LASER_DURATION);
-                System.out.println("Applied LASER effect");
-                break;
-
-            case LIFE:
-                // Add extra life
-                // gameManager.addLife();
-                System.out.println("Applied LIFE effect");
-                break;
-
-            case SLOW:
-                // Slow down ball speed
-                // gameManager.slowBalls(Constants.PowerUps.SLOW_MULTIPLIER, Constants.PowerUps.SLOW_DURATION);
-                System.out.println("Applied SLOW effect");
-                break;
-
-            case WARP:
-                // Warp to next level
-                // gameManager.warpToNextLevel();
-                System.out.println("Applied WARP effect");
-                break;
-        }
+        // Delegate to PowerUp's applyEffect method
+        powerUp.applyEffect(gameManager);
     }
 
     /**
@@ -404,44 +344,19 @@ public class PowerUpManager {
     /**
      * Removes/reverts a powerup effect.
      *
-     * For each effect type:
-     * - Revert changes made by the powerup
-     * - Notify GameManager
+     * Creates a temporary PowerUp instance to call its removeEffect method.
      *
      * @param type The effect type to remove
-     * @param paddle The player's paddle
+     * @param paddle The player's paddle (not used, kept for compatibility)
      */
     private void removeEffect(PowerUpType type, Paddle paddle) {
-        if (gameManager == null || paddle == null) {
+        if (gameManager == null) {
             return;
         }
 
-        // TODO: Implement actual effect removal through GameManager
-        switch (type) {
-            case CATCH:
-                // paddle.disableCatchMode();
-                System.out.println("Removed CATCH effect");
-                break;
-
-            case EXPAND:
-                // paddle.revertToNormalSize();
-                System.out.println("Removed EXPAND effect");
-                break;
-
-            case LASER:
-                // paddle.disableLaser();
-                System.out.println("Removed LASER effect");
-                break;
-
-            case SLOW:
-                // gameManager.restoreBallSpeed();
-                System.out.println("Removed SLOW effect");
-                break;
-
-            default:
-                // Instant effects don't need removal
-                break;
-        }
+        // Create temporary PowerUp instance to call removeEffect
+        PowerUp tempPowerUp = createPowerUp(type, 0, 0);
+        tempPowerUp.removeEffect(gameManager);
     }
 
     /**

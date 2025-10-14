@@ -161,4 +161,14 @@ public class SilverBrick extends Brick {
     public boolean isCrackAnimationPlaying() {
         return crackAnimation != null && crackAnimation.isPlaying();
     }
+    
+    /**
+     * Gets the crack animation for rendering.
+     * Used by CanvasRenderer to render animated crack effect.
+     *
+     * @return Crack animation object, or null if not available
+     */
+    public Animation getCrackAnimation() {
+        return crackAnimation;
+    }
 }
