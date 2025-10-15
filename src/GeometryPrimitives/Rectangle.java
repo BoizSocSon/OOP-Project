@@ -115,6 +115,33 @@ public class Rectangle {
         // Return a defensive copy to avoid external mutation of internal state
         return new Point(this.upperLeft.getX(), this.upperLeft.getY());
     }
+    
+    /**
+     * Checks if this rectangle intersects with another rectangle.
+     * Uses AABB (Axis-Aligned Bounding Box) collision detection.
+     * 
+     * @param other The other rectangle to check
+     * @return true if rectangles overlap, false otherwise
+     */
+    public boolean intersects(Rectangle other) {
+        if (other == null) return false;
+        
+        double thisLeft = this.upperLeft.getX();
+        double thisRight = thisLeft + this.width;
+        double thisTop = this.upperLeft.getY();
+        double thisBottom = thisTop + this.height;
+        
+        double otherLeft = other.upperLeft.getX();
+        double otherRight = otherLeft + other.width;
+        double otherTop = other.upperLeft.getY();
+        double otherBottom = otherTop + other.height;
+        
+        // Check if NOT overlapping (then negate)
+        return !(thisRight <= otherLeft || 
+                 thisLeft >= otherRight || 
+                 thisBottom <= otherTop || 
+                 thisTop >= otherBottom);
+    }
 
     public boolean equals(Rectangle rectangle) {
         // So sánh hai Rectangle theo toạ độ góc trên trái và kích thước với sai số EPSILON

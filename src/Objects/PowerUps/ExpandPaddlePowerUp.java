@@ -86,8 +86,9 @@ public class ExpandPaddlePowerUp extends PowerUp {
         }
         
         // Expand paddle width through GameManager
-        gameManager.expandPaddle(Constants.PowerUps.EXPAND_MULTIPLIER);
-        
+//        gameManager.expandPaddle(Constants.PowerUps.EXPAND_MULTIPLIER);
+        gameManager.expandPaddle();
+
         System.out.println("ExpandPaddlePowerUp: Paddle expanded to " + 
                          (Constants.PowerUps.EXPAND_MULTIPLIER * 100) + "% for " +
                          Constants.PowerUps.EXPAND_DURATION / 1000.0 + " seconds");
