@@ -2,363 +2,193 @@ package Utils;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.WritableImage;
+import javafx.scene.layout.Background;
 import javafx.scene.text.Font;
-//import javafx.scene.media.Media;
-//import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.AudioClip;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 
 import java.io.InputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * BASE LAYER - Tổng quát hóa việc load tất cả loại assets từ Resources.
- * 
- * Kiến trúc phân tầng:
- * AssetLoader (load từ disk) → SpriteCache (cache sprites) → AnimationFactory (tạo animations)
- * 
- * Chức năng:
- * - Load images (sprites) từ Resources/Graphics
- * - Load fonts từ Resources/Fonts
- * - Load audio từ Resources/Audio
- * - Validate tất cả resources có tồn tại
- * - Handle exceptions gracefully với fallback
- * 
- * @author SteveHoang aka BoizSocSon
+ * Lớp tiện ích chịu trách nhiệm tải tất cả tài nguyên (assets) của game bao gồm:
+ * <ul>
+ *     <li>Ảnh (Image)</li>
+ *     <li>Phông chữ (Font)</li>
+ *     <li>Âm thanh và nhạc nền (Audio, Music)</li>
+ * </ul>
+ *
+ * Lớp này là final và có constructor private để đảm bảo không thể tạo instance,
+ * chỉ cung cấp các phương thức static để tải tài nguyên khi cần.
  */
 public final class AssetLoader {
-    
-    // Danh sách fonts cần thiết cho game
-    private static final String[] REQUIRED_FONTS = {
-        "emulogic.ttf",      // Retro pixel font
-        "generation.ttf",    // Modern gaming font
-        "optimus.otf"        // Title/header font
-    };
 
-    // Danh sách sprites quan trọng
-    private static final String[] CRITICAL_SPRITES = {
-        "ball.png",
-        "brick_silver.png",
-        "edge_left.png",
-        "edge_right.png",
-        "edge_top.png",
-        "laser_bullet.png",
-        "logo.png",
-        "paddle.png",
-    };
-
-    private static final String[] AUDIO_FILES = {
-        "Game_Over_background_music.mp3",
-        "Main_Menu_background_music.mp3",
-        "Rounds_background_music.mp3",
-        "Winer_Menu_background_music.mp3"
-    };
-    
     private AssetLoader() {
-        throw new UnsupportedOperationException("Utility class - cannot instantiate");
+        // Ngăn việc khởi tạo lớp tiện ích
+        throw new UnsupportedOperationException("Utility class - cannot be instantiated");
     }
-    
+
     // ==================== IMAGE LOADING ====================
-    
+
     /**
-     * Load một image từ Graphics folder.
-     * 
-     * @param filename tên file (ví dụ: "paddle.png")
-     * @return Image object hoặc placeholder nếu failed
+     * Tải một ảnh từ thư mục đồ họa của game.
+     *
+     * @param filename tên file ảnh (ví dụ "brick.png")
+     * @return đối tượng {@link Image}, hoặc ảnh thay thế nếu không tìm thấy file
      */
     public static Image loadImage(String filename) {
         String path = Constants.Paths.GRAPHICS_PATH + filename;
         return loadImageFromPath(path);
     }
-    
+
     /**
-     * Load image từ đường dẫn tùy chỉnh.
-     * 
-     * @param path đường dẫn đầy đủ (ví dụ: "/Resources/Graphics/paddle.png")
-     * @return Image object hoặc placeholder nếu failed
+     * Thực hiện tải ảnh từ đường dẫn tuyệt đối bên trong resource.
+     * Có xử lý lỗi chi tiết và trả về ảnh mặc định nếu gặp sự cố.
      */
-    public static Image loadImageFromPath(String path) {
+    private static Image loadImageFromPath(String path) {
         try (InputStream is = AssetLoader.class.getResourceAsStream(path)) {
+            // Kiểm tra xem file có tồn tại không
             if (is == null) {
-                System.err.println("AssetLoader: Image not found: " + path);
-                return createPlaceholderImage();
+                System.err.println("Error: Image file not found - " + path);
+                return createPlaceholderImage(); // Trả về ảnh trống 50x50
             }
-            
+
             Image image = new Image(is);
+
+            // Kiểm tra lỗi trong quá trình load (nếu file bị hỏng)
             if (image.isError()) {
-                System.err.println("AssetLoader: Image loading error: " + path);
+                System.err.println();
                 return createPlaceholderImage();
             }
-            
+
             return image;
-            
+
         } catch (IOException e) {
+            // Lỗi khi đọc luồng dữ liệu
             System.err.println("AssetLoader: IOException loading image: " + path);
             e.printStackTrace();
             return createPlaceholderImage();
         } catch (IllegalArgumentException e) {
+            // Định dạng file ảnh không hợp lệ
             System.err.println("AssetLoader: Invalid image format: " + path);
             e.printStackTrace();
             return createPlaceholderImage();
         } catch (Exception e) {
+            // Lỗi không xác định
             System.err.println("AssetLoader: Unexpected error loading image: " + path);
             e.printStackTrace();
             return createPlaceholderImage();
         }
     }
-    
+
     /**
-     * Load nhiều images theo pattern với số thứ tự.
-     * 
-     * @param patternWithPercentD pattern chứa %d (ví dụ: "brick_%d.png")
-     * @param from số bắt đầu
-     * @param to số kết thúc
-     * @return List các Image objects
+     * Tải chuỗi ảnh có định dạng tên theo mẫu (ví dụ: frame_1.png, frame_2.png,...)
+     *
+     * @param patternWithPercentD mẫu chuỗi chứa %d (ví dụ: "brick_%d.png")
+     * @param from chỉ số bắt đầu
+     * @param to chỉ số kết thúc
+     * @return danh sách ảnh {@link List<Image>} đã tải
      */
     public static List<Image> loadImageSequence(String patternWithPercentD, int from, int to) {
         List<Image> images = new ArrayList<>();
         for (int i = from; i <= to; i++) {
+            // Sinh tên file từ mẫu
             String filename = String.format(patternWithPercentD, i);
-            images.add(loadImage(filename));
+            Image tempImage = loadImage(filename);
+            images.add(tempImage);
         }
+
         return images;
     }
-    
+
     /**
-     * Tạo placeholder image 1x1 pixel khi load failed.
+     * Tạo một ảnh placeholder (50x50 pixel) dùng khi không tải được ảnh thật.
+     *
+     * @return ảnh trống
      */
     private static Image createPlaceholderImage() {
-        return new WritableImage(1, 1);
+        WritableImage placeholder = new WritableImage(50, 50);
+        return placeholder;
     }
-    
+
     // ==================== FONT LOADING ====================
-    
+
     /**
-     * Load font từ Resources/Fonts với size chỉ định.
-     * 
-     * @param filename tên file font (ví dụ: "emulogic.ttf")
-     * @param size font size
-     * @return Font object hoặc default font nếu load failed
+     * Tải font chữ từ thư mục fonts của game.
+     * Nếu không tìm thấy, sử dụng font mặc định "Arial".
+     *
+     * @param filename tên file font (ví dụ "arcade.ttf")
+     * @param size cỡ chữ
+     * @return {@link Font} đã tải hoặc font thay thế
      */
     public static Font loadFont(String filename, int size) {
         String path = Constants.Paths.FONTS_PATH + filename;
-        
         try (InputStream is = AssetLoader.class.getResourceAsStream(path)) {
+            // Nếu không có file font, trả về Arial
             if (is == null) {
                 System.err.println("AssetLoader: Font not found: " + path);
-                return Font.font("Arial", size); // Fallback
+                return Font.font("Arial", size);
             }
-            
+
             Font font = Font.loadFont(is, size);
             if (font == null) {
+                // Font không thể load (do lỗi định dạng)
                 System.err.println("AssetLoader: Failed to load font: " + path);
                 return Font.font("Arial", size);
             }
-            
+
             System.out.println("AssetLoader: Loaded font: " + filename + " (" + size + "pt)");
             return font;
-            
+        } catch (IOException e) {
+            // Lỗi khi đọc luồng file font
+            System.err.println("AssetLoader: IOException loading font: " + path);
+            e.printStackTrace();
+            return Font.font("Arial", size);
         } catch (Exception e) {
-            System.err.println("AssetLoader: Error loading font: " + path);
+            // Lỗi không xác định
+            System.err.println("AssetLoader: Unexpected error loading font: " + path);
             e.printStackTrace();
             return Font.font("Arial", size);
         }
     }
-    
-    /**
-     * Validate tất cả assets có tồn tại.
-     * 
-     * Kiểm tra:
-     * - Fonts (3 fonts: emulogic, generation, optimus)
-     * - Critical sprites (paddle, bricks, powerups)
-     * - Audio files (nếu có)
-     * 
-     * @return List các files bị missing
-     */
-    public static List<String> validateAllAssets() {
-        List<String> missingFiles = new ArrayList<>();
 
-        System.out.println("AssetLoader: Validating assets...");
+    // ==================== AUDIO LOADING ====================
 
-        // Validate fonts
-        for (String fontFile : REQUIRED_FONTS) {
-            if (!resourceExists(Constants.Paths.FONTS_PATH + fontFile)) {
-                missingFiles.add("Font: " + fontFile);
-            }
-        }
-
-        // Validate critical sprites
-        for (String spriteFile : CRITICAL_SPRITES) {
-            if (!resourceExists(Constants.Paths.GRAPHICS_PATH + spriteFile)) {
-                missingFiles.add("Sprite: " + spriteFile);
-            }
-        }
-
-        for (String audioFile : AUDIO_FILES) {
-            if (!resourceExists(Constants.Paths.AUDIO_PATH + audioFile)) {
-                missingFiles.add("Audio: " + audioFile);
-            }
-        }
-
-        // Print results
-        if (missingFiles.isEmpty()) {
-            System.out.println("AssetLoader: ✓ All assets validated successfully");
-        } else {
-            System.err.println("AssetLoader: ✗ Missing " + missingFiles.size() + " assets:");
-            for (String missing : missingFiles) {
-                System.err.println("  - " + missing);
-            }
-        }
-
-        return missingFiles;
-    }
-    
     /**
-     * Kiểm tra resource có tồn tại không.
-     * 
-     * @param path đường dẫn tương đối (ví dụ: "/Resources/Fonts/emulogic.ttf")
-     * @return true nếu tồn tại
+     * Tải nhạc nền từ thư mục audio của game.
+     * Cho phép cài đặt chế độ lặp và âm lượng.
+     *
+     * @param track tên file nhạc (ví dụ "bgm.mp3")
+     * @param loop true nếu muốn phát lặp
+     * @param volume âm lượng (0.0 → 1.0)
+     * @return {@link MediaPlayer} để phát nhạc hoặc null nếu tải lỗi
      */
-    private static boolean resourceExists(String path) {
-        try {
-            URL url = AssetLoader.class.getResource(path);
-            if (url != null) {
-                return true;
-            }
-            
-            // Try as stream
-            try (InputStream is = AssetLoader.class.getResourceAsStream(path)) {
-                return is != null;
-            }
-        } catch (Exception e) {
-            return false;
-        }
-    }
-    
-    /**
-     * Lấy URL của resource.
-     * 
-     * @param filename tên file (relative path trong Resources)
-     * @return URL hoặc null nếu không tìm thấy
-     */
-    public static URL getResourcePath(String filename) {
-        // Try different base paths
-        String[] basePaths = {
-            Constants.Paths.FONTS_PATH,
-            Constants.Paths.AUDIO_PATH,
-            Constants.Paths.RESOURCES_PATH
-        };
-        
-        for (String basePath : basePaths) {
-            URL url = AssetLoader.class.getResource(basePath + filename);
-            if (url != null) {
-                return url;
-            }
-        }
-        
-        // Try direct path
-        URL url = AssetLoader.class.getResource(filename);
-        if (url != null) {
-            return url;
-        }
-        
-        System.err.println("AssetLoader: Resource not found: " + filename);
-        return null;
-    }
-    
-    /**
-     * Load audio metadata (placeholder - sẽ implement khi có AudioManager).
-     * 
-     * @param filename tên file audio
-     * @return true nếu file tồn tại
-     */
-    public static boolean validateAudioFile(String filename) {
-        String path = Constants.Paths.AUDIO_PATH + filename;
-        return resourceExists(path);
-    }
-    
-    /**
-     * Pre-load tất cả fonts với các sizes phổ biến.
-     * 
-     * Gọi method này khi khởi tạo game để tránh lag khi render lần đầu.
-     */
-    public static void preloadFonts() {
-        System.out.println("AssetLoader: Preloading fonts...");
-        
-        // Load emulogic (retro font) - sizes for body text
-        loadFont("emulogic.ttf", 8);
-        loadFont("emulogic.ttf", 10);
-        loadFont("emulogic.ttf", 12);
-        loadFont("emulogic.ttf", 14);
-        
-        // Load generation (modern font) - sizes for menus
-        loadFont("generation.ttf", 16);
-        loadFont("generation.ttf", 20);
-        loadFont("generation.ttf", 24);
-        
-        // Load optimus (title font) - sizes for headers
-        loadFont("optimus.otf", 32);
-        loadFont("optimus.otf", 48);
-        loadFont("optimus.otf", 64);
-        
-        System.out.println("AssetLoader: Fonts preloaded");
-    }
-    
-    /**
-     * Handle exception khi load assets.
-     * 
-     * @param e exception
-     * @param assetType loại asset (ví dụ: "Font", "Sprite")
-     * @param filename tên file
-     */
-    private static void handleLoadException(Exception e, String assetType, String filename) {
-        System.err.println("AssetLoader: Failed to load " + assetType + ": " + filename);
-        System.err.println("  Reason: " + e.getMessage());
-        
-        // Log to file if needed
-        // TODO: Implement file logging
-        
-        // Don't throw - return fallback instead để game không crash
-    }
-    
-    /**
-     * Get input stream for resource.
-     * 
-     * @param path đường dẫn resource
-     * @return InputStream hoặc null
-     */
-    public static InputStream getResourceStream(String path) {
-        try {
-            InputStream is = AssetLoader.class.getResourceAsStream(path);
+    public static MediaPlayer loadBackgroundMusic(String track, boolean loop, double volume) {
+        String path = Constants.Paths.AUDIO_PATH + track;
+        try (InputStream is = AssetLoader.class.getResourceAsStream(path)) {
+            // Kiểm tra file tồn tại
             if (is == null) {
-                System.err.println("AssetLoader: Cannot open stream for: " + path);
+                System.err.println("AssetLoader: Music file not found: " + path);
+                return null;
             }
-            return is;
+
+            // Tạo Media từ đường dẫn resource
+            Media media = new Media(AssetLoader.class.getResource(path).toExternalForm());
+            MediaPlayer mediaPlayer = new MediaPlayer(media);
+
+            // Thiết lập âm lượng và chế độ lặp
+            mediaPlayer.setVolume(volume);
+            if (loop) {
+                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            }
+            return mediaPlayer;
         } catch (Exception e) {
-            System.err.println("AssetLoader: Error opening stream: " + path);
+            System.err.println("AssetLoader: Error loading music: " + path);
             e.printStackTrace();
             return null;
-        }
-    }
-    
-    /**
-     * Print asset loading summary.
-     */
-    public static void printAssetSummary() {
-        System.out.println("=== Asset Loading Summary ===");
-
-        // Validate và in kết quả
-        List<String> missing = validateAllAssets();
-
-        System.out.println("Required fonts: " + REQUIRED_FONTS.length);
-        System.out.println("Critical sprites: " + CRITICAL_SPRITES.length);
-        System.out.println("Missing assets: " + missing.size());
-
-        if (missing.isEmpty()) {
-            System.out.println("Status: ✓ Ready to play");
-        } else {
-            System.err.println("Status: ✗ Some assets missing (using fallbacks)");
         }
     }
 }
