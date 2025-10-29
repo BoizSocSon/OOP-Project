@@ -1,7 +1,9 @@
 package Engine;
 
+import Objects.Bricks.BrickType;
 import Objects.GameEntities.Ball;
 import Objects.GameEntities.Paddle;
+import Objects.GameEntities.PaddleState;
 import Objects.GameEntities.Laser;
 import Objects.Bricks.Brick;
 import GeometryPrimitives.Point;
@@ -12,428 +14,533 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Quản lý trạng thái và quy tắc chơi của trò Arkanoid.
- *
- * REFACTORED VERSION - Tuần 2:
- * - Integrated managers: CollisionManager, StateManager, RoundsManager, PowerUpManager
- * - Simplified update loop
- * - Proper state machine handling
- * - Multi-ball and laser support (lists)
- *
- * @author SteveHoang aka BoizSocSon
+ * Lớp GameManager quản lý trạng thái, các đối tượng và logic cốt lõi của trò chơi.
+ * Nó chịu trách nhiệm cho vòng lặp cập nhật trò chơi, xử lý va chạm, quản lý vòng chơi,
+ * điểm số, mạng sống và các hiệu ứng PowerUp.
  */
 public class GameManager {
-    // Game objects
+    // Các đối tượng trò chơi chính
+    /** Đối tượng ván trượt của người chơi. */
     public Paddle paddle;
-    public List<Ball> balls = new ArrayList<>();
-    public List<Laser> lasers = new ArrayList<>();
-    public List<Brick> bricks = new ArrayList<>();
-    
-    // Managers
+    /** Danh sách các quả bóng hiện đang hoạt động trong trò chơi. */
+    public List<Ball> balls;
+    /** Danh sách các viên gạch còn lại trong màn chơi hiện tại. */
+    public List<Brick> bricks;
+    /** Danh sách các tia laser đang bay (nếu chức năng laser được kích hoạt). */
+    public List<Laser> lasers;
+
+    // Các lớp quản lý (Managers)
+    /** Quản lý việc kiểm tra và xử lý va chạm giữa các đối tượng. */
     private CollisionManager collisionManager;
+    /** Quản lý việc sinh ra và áp dụng các hiệu ứng PowerUp. */
     private PowerUpManager powerUpManager;
+    /** Quản lý việc tải và chuyển đổi giữa các vòng (màn chơi). */
     private RoundsManager roundsManager;
-    private StateManager stateManager;
+    /** Quản lý việc tính toán và cập nhật điểm số. */
     private ScoreManager scoreManager;
-    // private AudioManager audioManager; // To be implemented
-    
-    // Game state
-    public int width;
-    public int height;
-    public int lives = Constants.GameRules.INITIAL_LIVES;
-    public boolean ballAttached = true; // Ball stuck to paddle before launch
+    /** Quản lý trạng thái chung của trò chơi (Menu, Playing, Game Over, v.v.). */
+    private StateManager stateManager;
+
+    // Trạng thái trò chơi
+    /** Chiều rộng của khu vực chơi game. */
+    private int width;
+    /** Chiều cao tuyệt đối của cửa sổ game. */
+    private int height;
+    /** Số mạng sống hiện tại của người chơi. */
+    private int lives;
 
     /**
-     * Creates GameManager with play area dimensions.
-     * 
-     * NOTE: width and height are PLAY AREA size (excluding UI bar).
-     * CanvasRenderer will add offset when rendering.
-     *
-     * @param width  Play area width (pixels) - usually 600
-     * @param height Play area height (pixels) - usually 650 (800 - 150 UI bar)
+     * Khởi tạo GameManager, thiết lập kích thước cửa sổ, mạng sống ban đầu
+     * và khởi tạo tất cả các lớp quản lý cần thiết.
      */
-    public GameManager(int width, int height) {
-        this.width = width; 
-        this.height = height;
-        
-        // Initialize managers
+    public GameManager() {
+        this.width = Constants.Window.WINDOW_WIDTH;
+        // Chiều cao phải là chiều cao cửa sổ đầy đủ (tọa độ tuyệt đối).
+        // Sử dụng chiều cao cửa sổ đầy đủ để kiểm tra giới hạn nhất quán.
+        this.height = Constants.Window.WINDOW_HEIGHT;
+        this.lives = Constants.GameRules.INITIAL_LIVES;
+
+        this.balls = new ArrayList<>();
+        this.bricks = new ArrayList<>();
+        this.lasers = new ArrayList<>();
+
+        // Khởi tạo các Manager
         this.collisionManager = new CollisionManager(width, height);
+        // PowerUpManager là Singleton
         this.powerUpManager = PowerUpManager.getInstance();
         this.powerUpManager.setGameManager(this);
-        this.roundsManager = new RoundsManager(width, height);
-        this.stateManager = new StateManager();
+        this.roundsManager = new RoundsManager();
         this.scoreManager = new ScoreManager();
-        
-        // Initialize game
+        this.stateManager = new StateManager();
+
+        // Khởi tạo các đối tượng trò chơi (paddle, bóng ban đầu, gạch)
         initGame();
     }
 
     /**
-     * Initializes game objects and loads first round.
+     * Khởi tạo các đối tượng trò chơi ở trạng thái ban đầu (paddle, bóng, gạch vòng 1).
      */
     private void initGame() {
-        // Create paddle - use actual sprite dimensions
-        double paddleW = Constants.Physics.PADDLE_WIDTH;
-        double paddleH = Constants.Physics.PADDLE_HEIGHT;
-        paddle = new Paddle((width - paddleW) / 2.0, height - 60, paddleW, paddleH, Constants.Physics.PADDLE_SPEED);
-        
-        // Trigger materialize animation
-        paddle.playMaterializeAnimation();
+        // Khởi tạo ván trượt (Paddle)
+        double paddleWidth = Constants.Paddle.PADDLE_WIDTH;
+        double paddleHeight = Constants.Paddle.PADDLE_HEIGHT;
+        // Đặt paddle ở giữa phía dưới màn hình
+        paddle = new Paddle(
+                (width - paddleWidth) / 2.0,
+                height - paddleHeight - 60, // Đặt cách đáy một khoảng
+                paddleWidth,
+                paddleHeight
+        );
 
-        // Create ball - use actual sprite dimensions
-        double ballRadius = Constants.Physics.BALL_RADIUS;
-        Ball ball = new Ball((width/2.0) - ballRadius, height - 80, ballRadius, new Velocity(0, 0));
+        paddle.playMaterializeAnimation(); // Bắt đầu animation xuất hiện của paddle
+
+        // Khởi tạo quả bóng ban đầu
+        double ballRadius = Constants.Ball.BALL_RADIUS;
+        Ball ball = new Ball(
+                (width/2.0) - ballRadius, // Vị trí X giữa màn hình
+                height - 80, // Vị trí Y trên paddle một chút
+                ballRadius,
+                new Velocity(0, 0)); // Vận tốc ban đầu là 0
+
+        ball.setAttached(true); // Gắn bóng vào paddle ban đầu
+
         balls.add(ball);
-        ballAttached = true;
 
-        // Load first round
+        // Tải vòng chơi đầu tiên
         bricks = roundsManager.loadFirstRound();
     }
 
     /**
-     * Main update loop - called every frame.
-     * 
-     * NEW ARCHITECTURE (Tuần 2):
-     * - Uses StateManager to control flow
-     * - Delegates collisions to CollisionManager
-     * - Cleaner, more maintainable code
+     * Cập nhật logic trò chơi trong mỗi khung hình (game loop).
+     * Bao gồm cập nhật vị trí đối tượng, xử lý va chạm và kiểm tra điều kiện game.
      */
     public void update() {
-        // Only update if game is playing
+        // Chỉ cập nhật nếu trò chơi đang trong trạng thái PLAYING
         if (!stateManager.isPlaying()) {
             return;
         }
-        
-        // Update game objects
+
+        // Cập nhật ván trượt
         paddle.update();
-        
-        // If ball is attached to paddle, keep it positioned
-        if (ballAttached && !balls.isEmpty()) {
-            Ball ball = balls.get(0);
-            double paddleCenterX = paddle.getX() + paddle.getWidth() / 2.0;
-            double ballY = paddle.getY() - ball.getHeight() - 1.0;
-            ball.setCenter(new Point(paddleCenterX, ballY + ball.getHeight() / 2.0));
-            return; // Skip physics until launch
-        }
-        
-        // Update all balls
+
+        // Cập nhật vị trí của TẤT CẢ các quả bóng đang gắn (attached) để đi theo paddle
         for (Ball ball : balls) {
-            ball.update();
+            if (ball.isAttached()) {
+                double paddleCenterX = paddle.getX() + paddle.getWidth() / 2.0;
+                // Đặt bóng ngay trên paddle
+                double ballY = paddle.getY() - ball.getHeight() - 1.0;
+                // Sử dụng setCenter để đơn giản hóa việc đặt vị trí
+                ball.setCenter(new Point(paddleCenterX, ballY + ball.getHeight() / 2.0));
+            }
         }
-        
-        // Update all lasers
+        checkPaddleOutOfBounds(); // Đảm bảo paddle không đi ra ngoài biên
+
+        // Cập nhật vị trí của tất cả các quả bóng KHÔNG gắn
+        for (Ball ball : balls) {
+            if (!ball.isAttached()) {
+                ball.update();
+            }
+        }
+
+        // Cập nhật vị trí của các tia laser
         for (Laser laser : lasers) {
             laser.update();
         }
-        
-        // Update PowerUpManager (falling powerups)
-        powerUpManager.update(paddle);
-        
-        // Note: PowerUpManager handles its own collision detection and applies effects
-        // No need to manually check collisions here
-        
-        // Handle all collisions
-        handleCollisions();
-        
-        // Remove off-screen lasers
-        lasers.removeIf(Laser::isOffScreen);
-        
-        // Check game conditions (win/lose)
-        checkGameConditions();
-        
-        // Clamp paddle to screen bounds
-        if (paddle.getX() < 0) {
-            paddle.setX(0);
+
+        // Cập nhật các viên gạch (ví dụ: cho animation nứt)
+        for (Brick brick : bricks) {
+            if (brick.isAlive()) {
+                brick.update();
+            }
         }
-        if (paddle.getX() + paddle.getWidth() > width) {
-            paddle.setX(width - paddle.getWidth());
+
+        // Cập nhật trạng thái các PowerUp đang rơi và kiểm tra va chạm với paddle
+        powerUpManager.update(paddle);
+
+        // Xóa các tia laser đã bay ra khỏi màn hình
+        lasers.removeIf(Laser::isOffScreen);
+
+        // Xử lý va chạm
+        handleCollisions();
+        // Kiểm tra điều kiện thắng/thua/hết mạng/hoàn thành vòng
+        checkGameConditions();
+        // Lặp lại kiểm tra out of bounds để xử lý trường hợp paddle thay đổi kích thước sau va chạm
+        checkPaddleOutOfBounds();
+    }
+
+    /**
+     * Đảm bảo ván trượt (paddle) luôn nằm trong giới hạn màn hình chơi game.
+     */
+    private void checkPaddleOutOfBounds() {
+        // Kiểm tra biên trái
+        if (paddle.getX() < Constants.Window.WINDOW_SIDE_OFFSET) {
+            paddle.setX(Constants.Window.WINDOW_SIDE_OFFSET);
+        }
+        // Kiểm tra biên phải
+        else if (paddle.getX() + paddle.getWidth() > width - Constants.Window.WINDOW_SIDE_OFFSET) {
+            paddle.setX(width - paddle.getWidth() - Constants.Window.WINDOW_SIDE_OFFSET);
         }
     }
-    
+
     /**
-     * Handles all collision detection and responses.
-     * Delegates to CollisionManager for clean separation.
+     * Xử lý tất cả các va chạm trong trò chơi (bóng-tường, bóng-paddle, bóng-gạch, laser-gạch).
      */
     private void handleCollisions() {
-        // Ball collisions
-        for (Ball ball : new ArrayList<>(balls)) {
-            // Ball vs walls
-            collisionManager.checkBallWallCollisions(ball, 0, width, 0);
-            
-            // Ball vs paddle
+        // Xử lý va chạm của bóng
+        for (Ball ball : balls) {
+            // Kiểm tra va chạm bóng với tường (trái, phải, trên)
+            // Truyền tọa độ biên trên đã điều chỉnh (offset UI + chiều cao sprite biên)
+            collisionManager.checkBallWallCollisions(ball,
+                    Constants.Borders.BORDER_SIDE_WIDTH,
+                    Constants.Window.WINDOW_WIDTH - Constants.Borders.BORDER_SIDE_WIDTH,
+                    Constants.Window.WINDOW_TOP_OFFSET + Constants.Borders.BORDER_TOP_HEIGHT);
+
+            // Kiểm tra va chạm bóng với paddle
             if (collisionManager.checkBallPaddleCollision(ball, paddle)) {
-                // Check if catch mode triggered
-                if (paddle.isCatchModeEnabled() && !ballAttached) {
-                    ballAttached = true;
-                    ball.setVelocity(new Velocity(0, 0));
-                    System.out.println("GameManager: Ball caught!");
+                // Nếu Catch Mode (chế độ bắt bóng) được bật VÀ bóng không bị gắn
+                if(paddle.isCatchModeEnabled() && !ball.isAttached()) {
+                    ball.setVelocity(new Velocity(0,0)); // Dừng bóng lại
+                    ball.setAttached(true); // Gắn bóng vào paddle
                 }
             }
-            
-            // Ball vs bricks
+
+            // Kiểm tra va chạm bóng với gạch
             List<Brick> destroyedBricks = collisionManager.checkBallBrickCollisions(ball, bricks);
-            
-            // Award score for destroyed bricks
+
+            // Xử lý các viên gạch bị phá hủy
             for (Brick brick : destroyedBricks) {
-                int points = brick instanceof Objects.Bricks.SilverBrick ? 100 : 50;
-                scoreManager.addScore(points);
-                
-                // Spawn PowerUp from brick
-                double brickCenterX = brick.getX() + brick.getWidth() / 2.0;
-                double brickCenterY = brick.getY() + brick.getHeight() / 2.0;
-                powerUpManager.spawnFromBrick(brickCenterX, brickCenterY, Objects.Bricks.BrickType.BLUE);
+                BrickType type = brick.getBrickType();
+                scoreManager.addDestroyBrickScore(type); // Cộng điểm
+                // Sinh PowerUp từ gạch
+                powerUpManager.spawnFromBrick(brick.getX(), brick.getY(), type);
             }
         }
-        
-        // Laser collisions
-        Map<Laser, Brick> laserHits = collisionManager.checkLaserBrickCollisions(lasers, bricks);
-        
-        for (Map.Entry<Laser, Brick> entry : laserHits.entrySet()) {
+
+        // Xử lý va chạm laser với gạch
+        Map<Laser, Brick> laserBrickHits = collisionManager.checkLaserBrickCollisions(lasers, bricks);
+
+        for (Map.Entry<Laser, Brick> entry : laserBrickHits.entrySet()) {
             Laser laser = entry.getKey();
             Brick brick = entry.getValue();
-            
-            // Destroy laser
-            laser.destroy();
-            
-            // Award score
-            int points = brick instanceof Objects.Bricks.SilverBrick ? 100 : 50;
-            scoreManager.addScore(points);
+
+            laser.destroy(); // Hủy tia laser
+
+            BrickType type = brick.getBrickType();
+            scoreManager.addDestroyBrickScore(type); // Cộng điểm
+            // Không sinh PowerUp khi gạch bị phá bằng laser
         }
     }
-    
+
     /**
-     * Checks win/lose conditions and updates game state.
+     * Kiểm tra các điều kiện thắng/thua của trò chơi, bao gồm:
+     * - Bóng rơi khỏi màn hình.
+     * - Hoàn thành vòng chơi hiện tại.
      */
     private void checkGameConditions() {
-        // Check if all balls fell off screen (lose life)
+        // Kiểm tra và xóa các quả bóng rơi ra khỏi đáy màn hình
         balls.removeIf(ball -> ball.getY() > height);
-        
+
+        // Nếu hết bóng
         if (balls.isEmpty()) {
-            loseLife();
+            loseLife(); // Mất một mạng
             return;
         }
-        
-        // Check if round is complete
+
+        // Kiểm tra hoàn thành vòng chơi
         if (roundsManager.isRoundComplete()) {
             if (roundsManager.hasNextRound()) {
+                // Chuyển sang level tiếp theo
                 stateManager.setState(GameState.LEVEL_COMPLETE);
-                
-                // Schedule next round load after delay
-                // In a real implementation, this would be in a timer callback
-                roundsManager.nextRound();
-                bricks = roundsManager.getCurrentBricks();
-                stateManager.setState(GameState.PLAYING);
+
+                // Xóa tất cả các PowerUp đang rơi
+                powerUpManager.clearAllPowerUps();
+
+                roundsManager.nextRound(); // Tải dữ liệu vòng tiếp theo
+                bricks = roundsManager.getCurrentBricks(); // Cập nhật danh sách gạch mới
+                stateManager.setState(GameState.PLAYING); // Trở lại trạng thái chơi
+
+                resetBall(); // Đặt lại bóng và paddle
             } else {
-                // All rounds completed - WIN!
+                // Hoàn thành tất cả các vòng - THẮNG!
+                powerUpManager.clearAllPowerUps();
                 stateManager.setState(GameState.WIN);
             }
         }
     }
-    
+
     /**
-     * Handles losing a life.
+     * Giảm một mạng sống và xử lý kết thúc game nếu hết mạng.
      */
     private void loseLife() {
-        lives--;
-        scoreManager.addScore(-500); // Penalty
-        
-        paddle.playExplodeAnimation();
-        // AudioManager.playSFX(LOSE_LIFE) - to be implemented
-        
+        lives--; // Giảm mạng
+        scoreManager.applyLoseLifePenalty(); // Áp dụng hình phạt điểm (nếu có)
+
+        paddle.playExplodeAnimation(); // Chơi animation nổ của paddle
+
         if (lives <= 0) {
-            // Game Over
+            // Hết mạng - GAME OVER
+            powerUpManager.clearAllPowerUps();
             stateManager.setState(GameState.GAME_OVER);
         } else {
-            // Reset ball
+            // Còn mạng - Đặt lại bóng
             resetBall();
         }
     }
-    
+
     /**
-     * Resets ball to paddle position after losing a life.
+     * Đặt lại bóng (Ball) về vị trí ban đầu và gắn vào Paddle.
+     * Đồng thời đặt lại các hiệu ứng trên Paddle.
      */
     private void resetBall() {
-        balls.clear();
-        
-        double ballRadius = Constants.Physics.BALL_RADIUS;
+        balls.clear(); // Xóa tất cả các bóng hiện tại
+
+        // Đặt lại paddle về trạng thái bình thường (xóa tất cả hiệu ứng PowerUp)
+        resetPaddleEffects();
+
+        double ballRadius = Constants.Ball.BALL_RADIUS;
         double paddleCenterX = paddle.getX() + paddle.getWidth() / 2.0;
         double ballY = paddle.getY() - ballRadius * 2 - 5;
-        
+
+        // Tạo quả bóng mới ở vị trí trung tâm paddle, gắn vào
         Ball ball = new Ball(paddleCenterX - ballRadius, ballY, ballRadius, new Velocity(0, 0));
+        ball.setAttached(true);
         balls.add(ball);
-        ballAttached = true;
-        
-        paddle.playMaterializeAnimation();
+
+        paddle.playMaterializeAnimation(); // Chơi animation xuất hiện
     }
 
     /**
-     * Resets game to initial state.
-     * Called when player wants to restart.
+     * Đặt lại tất cả các hiệu ứng PowerUp trên ván trượt (paddle) khi người chơi mất một mạng.
+     * Điều này đảm bảo paddle trở về kích thước và trạng thái bình thường.
      */
-    public void reset() {
-        lives = Constants.GameRules.INITIAL_LIVES;
-        ballAttached = true;
-        
-        // Reset managers
-        scoreManager.reset();
+    private void resetPaddleEffects() {
+        PaddleState currentState = paddle.getState();
+        System.out.println("resetPaddleEffects: Current paddle state = " + currentState +
+                ", width = " + paddle.getWidth());
+
+        // Đặt lại hiệu ứng mở rộng (EXPAND)
+        // Kiểm tra trực tiếp chiều rộng vì trạng thái có thể bị thay đổi
+        if (paddle.getWidth() > Constants.Paddle.PADDLE_WIDTH + 1) {
+            // Paddle vẫn còn rộng, buộc thu nhỏ
+            double centerX = paddle.getX() + paddle.getWidth() / 2.0;
+            paddle.setWidth(Constants.Paddle.PADDLE_WIDTH);
+            // Đảm bảo paddle vẫn ở vị trí trung tâm cũ
+            paddle.setX(centerX - paddle.getWidth() / 2.0);
+            System.out.println("resetPaddleEffects: Forced paddle width reset");
+        }
+
+        // Đặt lại hiệu ứng Laser
+        if (currentState == PaddleState.LASER ||
+                currentState == PaddleState.LASER_PULSATE) {
+            paddle.disableLaser();
+        }
+
+        // Đặt lại chế độ bắt bóng (Catch Mode)
+        if (paddle.isCatchModeEnabled()) {
+            paddle.setCatchModeEnabled(false);
+        }
+
+        // Xóa bộ đếm thời gian hiệu ứng làm chậm (SLOW)
+        // (Tốc độ bóng sẽ được xử lý lại trong restoreBallSpeed nếu cần)
+        paddle.clearSlowEffect();
+
+        // Buộc trạng thái về NORMAL (xóa mọi trạng thái PowerUp còn sót)
+        if (currentState != PaddleState.NORMAL) {
+            paddle.setState(PaddleState.NORMAL);
+        }
+
+        System.out.println("resetPaddleEffects: After reset - state = " + paddle.getState() +
+                ", width = " + paddle.getWidth());
+    }
+
+    /**
+     * Đặt lại toàn bộ trò chơi về trạng thái ban đầu (thường được gọi khi bắt đầu game mới từ Menu).
+     */
+    public void resetGame() {
+        lives = Constants.GameRules.INITIAL_LIVES; // Đặt lại mạng
+
+        // Đặt lại các Manager
+        scoreManager.resetScore();
+        scoreManager.resetMultiplier();
         roundsManager.reset();
+        // PowerUpManager là Singleton nên chỉ cần reset tham chiếu/trạng thái
         powerUpManager = PowerUpManager.getInstance();
         powerUpManager.setGameManager(this);
-        stateManager.setState(GameState.MENU);
-        
-        // Clear lists
+        stateManager.setState(GameState.MENU); // Chuyển về trạng thái Menu
+
+        // Xóa danh sách đối tượng
         balls.clear();
         lasers.clear();
-        
-        // Reinitialize game
+
+        // Khởi tạo lại các đối tượng trò chơi (paddle, bóng, gạch)
         initGame();
     }
 
     /**
-     * Launches ball from paddle.
-     * Supports multi-ball - launches all attached balls.
+     * Phóng quả bóng đang được gắn (attached) khỏi ván trượt.
+     * Chỉ phóng quả bóng đầu tiên được tìm thấy.
      */
     public void launchBall() {
-        if (!ballAttached || balls.isEmpty()) {
+        if (balls.isEmpty()) {
             return;
         }
-        
-        ballAttached = false;
-        
-        // Launch all balls with initial velocity
+
+        // Tìm và phóng quả bóng gắn đầu tiên
         for (Ball ball : balls) {
-            ball.setVelocity(new Velocity(0, -Constants.Physics.BALL_INITIAL_SPEED));
+            if (ball.isAttached()) {
+                ball.setAttached(false); // Bỏ gắn
+                // Đặt vận tốc ban đầu hướng lên trên
+                ball.setVelocity(new Velocity(0, -Constants.Ball.BALL_INITIAL_SPEED));
+                return; // Chỉ phóng một quả bóng mỗi lần nhấn phím
+            }
         }
-        
-        System.out.println("GameManager: Ball(s) launched!");
     }
-    
+
     /**
-     * Shoots laser from paddle (Space bar or fire button).
-     * Called by input handler when player wants to shoot.
+     * Bắn tia laser từ ván trượt nếu chức năng Laser được bật.
      */
     public void shootLaser() {
+        // Kiểm tra xem laser có được bật không
         if (!paddle.isLaserEnabled()) {
             return;
         }
-        
+
+        // Tạo ra các tia laser mới từ paddle
         List<Laser> newLasers = paddle.shootLaser();
-        lasers.addAll(newLasers);
-        
+        lasers.addAll(newLasers); // Thêm vào danh sách laser đang hoạt động
+
         if (!newLasers.isEmpty()) {
             System.out.println("GameManager: Fired " + newLasers.size() + " lasers");
         }
     }
 
-    // ============================================================
-    // PowerUp Effect Methods
-    // ============================================================
-    
     /**
-     * Enables catch mode on paddle (CATCH PowerUp).
-     * When enabled, ball sticks to paddle on collision.
+     * Bật chế độ bắt bóng (Catch Mode) trên ván trượt (PowerUp CATCH).
+     * Khi được bật, bóng sẽ dính vào ván trượt khi va chạm.
      */
     public void enableCatchMode() {
         paddle.setCatchModeEnabled(true);
         System.out.println("GameManager: Catch mode enabled");
     }
-    
+
     /**
-     * Disables catch mode on paddle.
+     * Tắt chế độ bắt bóng trên ván trượt.
      */
     public void disableCatchMode() {
         paddle.setCatchModeEnabled(false);
         System.out.println("GameManager: Catch mode disabled");
     }
-    
+
     /**
-     * Gets current ball count.
-     * @return Number of active balls
+     * Lấy số lượng quả bóng hiện đang hoạt động.
+     * @return Số lượng quả bóng đang hoạt động.
      */
     public int getBallCount() {
         return balls.size();
     }
-    
+
     /**
-     * Duplicates all balls (DUPLICATE PowerUp).
-     * Creates copies of existing balls with angled velocities.
+     * Nhân đôi tất cả các quả bóng hiện tại (PowerUp DUPLICATE).
+     * Tạo bản sao của các quả bóng hiện có với vận tốc phân kỳ.
      */
     public void duplicateBalls() {
         List<Ball> newBalls = new ArrayList<>();
-        
+
         for (Ball ball : balls) {
-            // Create two copies with ±30° angles
-            Velocity vel = ball.getVelocity();
-            double speed = Math.hypot(vel.getDx(), vel.getDy());
-            double angle = Math.atan2(vel.getDy(), vel.getDx());
-            
-            // Left ball (-30°)
-            double leftAngle = angle - Math.toRadians(30);
-            Ball leftBall = new Ball(
-                ball.getX(), ball.getY(), 
-                Constants.Physics.BALL_RADIUS,
-                new Velocity(speed * Math.cos(leftAngle), speed * Math.sin(leftAngle))
-            );
-            newBalls.add(leftBall);
-            
-            // Right ball (+30°)
-            double rightAngle = angle + Math.toRadians(30);
-            Ball rightBall = new Ball(
-                ball.getX(), ball.getY(),
-                Constants.Physics.BALL_RADIUS,
-                new Velocity(speed * Math.cos(rightAngle), speed * Math.sin(rightAngle))
-            );
-            newBalls.add(rightBall);
+            // Nếu bóng đang gắn (attached), nhân đôi thành các bóng cũng gắn
+            if (ball.isAttached()) {
+                // Tạo hai bản sao ở cùng vị trí, cũng gắn vào paddle
+                Ball leftBall = new Ball(
+                        ball.getX(), ball.getY(),
+                        Constants.Ball.BALL_RADIUS,
+                        new Velocity(0, 0)
+                );
+                leftBall.setAttached(true);
+                newBalls.add(leftBall);
+
+                Ball rightBall = new Ball(
+                        ball.getX(), ball.getY(),
+                        Constants.Ball.BALL_RADIUS,
+                        new Velocity(0, 0)
+                );
+                rightBall.setAttached(true);
+                newBalls.add(rightBall);
+            } else {
+                // Nếu bóng đang bay, tạo hai bản sao với góc bay ±30° so với góc hiện tại
+                Velocity vel = ball.getVelocity();
+                double speed = Math.hypot(vel.getDx(), vel.getDy()); // Tính tốc độ hiện tại
+                double angle = Math.atan2(vel.getDy(), vel.getDx()); // Tính góc bay hiện tại
+
+                // Bóng bên trái (-30°)
+                double leftAngle = angle - Math.toRadians(30);
+                Ball leftBall = new Ball(
+                        ball.getX(), ball.getY(),
+                        Constants.Ball.BALL_RADIUS,
+                        // Thiết lập vận tốc mới
+                        new Velocity(speed * Math.cos(leftAngle), speed * Math.sin(leftAngle))
+                );
+                newBalls.add(leftBall);
+
+                // Bóng bên phải (+30°)
+                double rightAngle = angle + Math.toRadians(30);
+                Ball rightBall = new Ball(
+                        ball.getX(), ball.getY(),
+                        Constants.Ball.BALL_RADIUS,
+                        // Thiết lập vận tốc mới
+                        new Velocity(speed * Math.cos(rightAngle), speed * Math.sin(rightAngle))
+                );
+                newBalls.add(rightBall);
+            }
         }
-        
-        balls.addAll(newBalls);
+
+        balls.addAll(newBalls); // Thêm các bóng mới vào danh sách
         System.out.println("GameManager: Balls duplicated! Total: " + balls.size());
     }
-    
+
     /**
-     * Expands paddle width (EXPAND PowerUp).
+     * Mở rộng chiều rộng của ván trượt (PowerUp EXPAND).
      */
     public void expandPaddle() {
         paddle.expand();
         System.out.println("GameManager: Paddle expanded");
     }
-    
+
     /**
-     * Reverts paddle to original size.
+     * Đặt lại kích thước ván trượt về kích thước ban đầu.
+     * (Việc này được Paddle tự động xử lý sau thời gian PowerUp hết hạn).
      */
     public void revertPaddleSize() {
-        // Handled automatically by Paddle.update() after 10 seconds
+        // Xử lý tự động bởi Paddle.update() sau 10 giây
         System.out.println("GameManager: Paddle size will revert automatically");
     }
-    
+
     /**
-     * Enables laser shooting on paddle (LASER PowerUp).
-     * @param shots Number of laser shots available
+     * Bật chức năng bắn tia laser trên ván trượt (PowerUp LASER).
      */
-    public void enableLaser(int shots) {
-        paddle.enableLaser(shots);
-        System.out.println("GameManager: Laser enabled with " + shots + " shots");
+    public void enableLaser() {
+        paddle.enableLaser();
+        System.out.println("GameManager: Laser enabled with " + Constants.Laser.LASER_SHOTS + " shots");
     }
-    
+
     /**
-     * Disables laser shooting on paddle.
+     * Tắt chức năng bắn tia laser trên ván trượt.
      */
     public void disableLaser() {
         paddle.setLaserEnabled(false);
         System.out.println("GameManager: Laser disabled");
     }
-    
+
     /**
-     * Gets current number of lives.
-     * @return Current lives count
+     * Lấy số mạng sống hiện tại của người chơi.
+     * @return Số mạng sống hiện tại.
      */
     public int getLives() {
         return lives;
     }
-    
+
     /**
-     * Adds one life (LIFE PowerUp).
-     * Maximum lives defined in Constants.
+     * Thêm một mạng sống cho người chơi (PowerUp LIFE).
+     * Mạng sống tối đa được định nghĩa trong Constants.
      */
     public void addLife() {
         if (lives < Constants.GameRules.MAX_LIVES) {
@@ -443,134 +550,164 @@ public class GameManager {
             System.out.println("GameManager: Max lives reached");
         }
     }
-    
+
     /**
-     * Slows down all balls (SLOW PowerUp).
-     * @param multiplier Speed multiplier (e.g., 0.7)
+     * Làm chậm tốc độ của tất cả các quả bóng (PowerUp SLOW).
+     * @param multiplier Hệ số nhân tốc độ (ví dụ: 0.7).
      */
     public void slowBalls(double multiplier) {
         for (Ball ball : balls) {
             Velocity currentVel = ball.getVelocity();
+            // Nhân vận tốc hiện tại với hệ số làm chậm
             double newDx = currentVel.getDx() * multiplier;
             double newDy = currentVel.getDy() * multiplier;
             ball.setVelocity(new Velocity(newDx, newDy));
         }
+
+        // Đặt thời gian hết hạn hiệu ứng làm chậm trên paddle (dùng cho animation cảnh báo)
+        long expiryTime = System.currentTimeMillis() + Constants.PowerUps.SLOW_DURATION;
+        paddle.setSlowEffectExpiry(expiryTime);
+
         System.out.println("GameManager: Balls slowed by " + multiplier + "x");
     }
-    
+
     /**
-     * Restores original ball speed (removes SLOW effect).
+     * Khôi phục tốc độ ban đầu của tất cả các quả bóng (loại bỏ hiệu ứng SLOW).
      */
     public void restoreBallSpeed() {
         for (Ball ball : balls) {
             Velocity currentVel = ball.getVelocity();
             double speed = Math.hypot(currentVel.getDx(), currentVel.getDy());
-            
-            // If speed is very slow, restore to initial speed
-            if (speed < Constants.Physics.BALL_MIN_SPEED) {
+
+            // Nếu tốc độ quá chậm (ví dụ: bị làm chậm quá nhiều lần hoặc khởi tạo lại)
+            if (speed < Constants.Ball.BALL_MIN_SPEED) {
+                // Đặt lại về tốc độ ban đầu (BALL_INITIAL_SPEED)
                 double angle = Math.atan2(currentVel.getDy(), currentVel.getDx());
-                double newDx = Math.cos(angle) * Constants.Physics.BALL_INITIAL_SPEED;
-                double newDy = Math.sin(angle) * Constants.Physics.BALL_INITIAL_SPEED;
+                double newDx = Math.cos(angle) * Constants.Ball.BALL_INITIAL_SPEED;
+                double newDy = Math.sin(angle) * Constants.Ball.BALL_INITIAL_SPEED;
                 ball.setVelocity(new Velocity(newDx, newDy));
             } else {
-                // Restore to normal speed
-                double restoreMultiplier = 1.0 / 0.7; // Inverse of slow multiplier
+                // Khôi phục về tốc độ bình thường (bằng cách nhân với nghịch đảo của hệ số làm chậm 0.7)
+                double restoreMultiplier = 1.0 / 0.7; // Nghịch đảo của hệ số làm chậm
                 double newDx = currentVel.getDx() * restoreMultiplier;
                 double newDy = currentVel.getDy() * restoreMultiplier;
                 ball.setVelocity(new Velocity(newDx, newDy));
             }
         }
+
+        // Xóa bộ đếm thời gian hết hạn hiệu ứng làm chậm trên paddle
+        paddle.clearSlowEffect();
+
         System.out.println("GameManager: Ball speed restored");
     }
-    
+
     /**
-     * Warps to next level (WARP PowerUp).
-     * Clears current round and advances.
+     * Chuyển ngay lập tức đến vòng chơi tiếp theo (PowerUp WARP).
+     * Xóa vòng hiện tại và chuyển tiếp.
+     * @return true nếu chuyển vòng thành công, false nếu đã ở vòng cuối.
      */
     public boolean warpToNextLevel() {
         if (roundsManager.hasNextRound()) {
-            roundsManager.nextRound();
-            bricks = roundsManager.getCurrentBricks();
-            resetBall();
+            // Xóa tất cả PowerUp đang rơi khi chuyển level
+            powerUpManager.clearAllPowerUps();
+
+            roundsManager.nextRound(); // Tải vòng tiếp theo
+            bricks = roundsManager.getCurrentBricks(); // Cập nhật gạch
+            resetBall(); // Đặt lại bóng
             System.out.println("GameManager: Warped to next level!");
             return true;
         } else {
-            // Already on last level
+            // Đã ở vòng cuối - THẮNG!
+            powerUpManager.clearAllPowerUps();
             stateManager.setState(GameState.WIN);
             return false;
         }
     }
-    
+
+    // --- Các phương thức Getter cho các Manager và Trạng thái ---
+
     /**
-     * Gets the PowerUpManager instance.
-     * @return PowerUpManager instance
+     * Lấy thể hiện (instance) của PowerUpManager.
+     * @return Thể hiện của PowerUpManager.
      */
     public PowerUpManager getPowerUpManager() {
         return powerUpManager;
     }
-    
+
     /**
-     * Gets the StateManager instance.
-     * @return StateManager instance
+     * Lấy thể hiện của StateManager.
+     * @return Thể hiện của StateManager.
      */
     public StateManager getStateManager() {
         return stateManager;
     }
-    
+
     /**
-     * Gets the RoundsManager instance.
-     * @return RoundsManager instance
+     * Lấy thể hiện của RoundsManager.
+     * @return Thể hiện của RoundsManager.
      */
     public RoundsManager getRoundsManager() {
         return roundsManager;
     }
-    
+
     /**
-     * Gets the ScoreManager instance.
-     * @return ScoreManager instance
+     * Lấy thể hiện của ScoreManager.
+     * @return Thể hiện của ScoreManager.
      */
     public ScoreManager getScoreManager() {
         return scoreManager;
     }
-    
+
     /**
-     * Gets the CollisionManager instance.
-     * @return CollisionManager instance
+     * Lấy thể hiện của CollisionManager.
+     * @return Thể hiện của CollisionManager.
      */
     public CollisionManager getCollisionManager() {
         return collisionManager;
     }
-    
+
     /**
-     * Gets current score (from ScoreManager).
-     * @return Current score
+     * Lấy điểm số hiện tại (từ ScoreManager).
+     * @return Điểm số hiện tại.
      */
     public int getScore() {
         return scoreManager.getScore();
     }
-    
+
     /**
-     * Checks if game is over.
-     * @return true if game ended (GAME_OVER or WIN state)
+     * Kiểm tra xem trò chơi đã kết thúc hay chưa (GAME_OVER hoặc WIN).
+     * @return true nếu trò chơi đã kết thúc.
      */
     public boolean isGameOver() {
         return stateManager.isGameOver();
     }
-    
+
     /**
-     * Checks if player won.
-     * @return true if in WIN state
+     * Kiểm tra xem người chơi đã thắng trò chơi hay chưa (trạng thái WIN).
+     * @return true nếu trò chơi đang ở trạng thái WIN.
      */
     public boolean hasWon() {
         return stateManager.getState() == GameState.WIN;
     }
-    
+
     /**
-     * Gets list of active lasers.
-     * @return List of lasers
+     * Lấy danh sách các tia laser đang hoạt động.
+     * @return Danh sách các đối tượng Laser.
      */
     public List<Laser> getLasers() {
         return lasers;
     }
 
+    /**
+     * Kiểm tra xem có bất kỳ quả bóng nào đang được gắn vào paddle hay không.
+     * @return true nếu có ít nhất một quả bóng đang được gắn.
+     */
+    public boolean isAttached() {
+        for (Ball ball : balls) {
+            if (ball.isAttached()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
