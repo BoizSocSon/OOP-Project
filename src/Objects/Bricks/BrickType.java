@@ -3,32 +3,58 @@ package Objects.Bricks;
 import Utils.Constants;
 
 /**
- * Enum representing different types of bricks in the game.
- * Special bricks include:
- * - SILVER: Takes 2 hits to destroy
- * - GOLD: Indestructible (999 hit points)
+ * <p>Đại diện cho các loại gạch (brick) khác nhau trong trò chơi.
+ * Mỗi loại gạch có các thuộc tính riêng biệt như
+ * **điểm máu (hit points)**, **tên sprite (hình ảnh)**, và **điểm cơ bản (base score)**.</p>
  */
 public enum BrickType {
-    BLUE(1, "brick_blue.png", Constants.Scoring.SCORE_BRICK_BASE + 10),
-    RED(1, "brick_red.png", Constants.Scoring.SCORE_BRICK_BASE + 20),
-    GREEN(1, "brick_green.png", Constants.Scoring.SCORE_BRICK_BASE + 30),
-    YELLOW(1, "brick_yellow.png", Constants.Scoring.SCORE_BRICK_BASE + 40),
-    ORANGE(1, "brick_orange.png", Constants.Scoring.SCORE_BRICK_BASE + 50),
-    PINK(1, "brick_pink.png", Constants.Scoring.SCORE_BRICK_BASE + 60),
-    CYAN(1, "brick_cyan.png", Constants.Scoring.SCORE_BRICK_BASE + 70),
-    WHITE(1, "brick_white.png", Constants.Scoring.SCORE_BRICK_BASE + 80),
-    SILVER(2, "brick_silver.png", Constants.Scoring.SCORE_BRICK_BASE),
-    GOLD(999, "brick_gold.png", Constants.Scoring.SCORE_BRICK_BASE + 0);
+    // Các loại gạch thông thường, chỉ cần 1 điểm va chạm để phá vỡ (hitPoints = 1)
 
+    /** Gạch màu Xanh dương. */
+    BLUE(1, "brick_blue", Constants.Scoring.SCORE_BRICK_BASE + 10),
+    /** Gạch màu Đỏ. */
+    RED(1, "brick_red", Constants.Scoring.SCORE_BRICK_BASE + 20),
+    /** Gạch màu Xanh lá. */
+    GREEN(1, "brick_green", Constants.Scoring.SCORE_BRICK_BASE + 30),
+    /** Gạch màu Vàng. */
+    YELLOW(1, "brick_yellow", Constants.Scoring.SCORE_BRICK_BASE + 40),
+    /** Gạch màu Cam. */
+    ORANGE(1, "brick_orange", Constants.Scoring.SCORE_BRICK_BASE + 50),
+    /** Gạch màu Hồng. */
+    PINK(1, "brick_pink", Constants.Scoring.SCORE_BRICK_BASE + 60),
+    /** Gạch màu Xanh ngọc (Cyan). */
+    CYAN(1, "brick_cyan", Constants.Scoring.SCORE_BRICK_BASE + 70),
+    /** Gạch màu Trắng. */
+    WHITE(1, "brick_white", Constants.Scoring.SCORE_BRICK_BASE + 80),
+
+    // Các loại gạch đặc biệt
+
+    /** * Gạch Bạc. Cần 2 điểm va chạm (hitPoints = 2) để phá vỡ.
+     * Điểm thưởng bằng điểm cơ bản của gạch.
+     */
+    SILVER(2, "brick_silver", Constants.Scoring.SCORE_BRICK_BASE),
+
+    /** * Gạch Vàng. Gần như không thể phá vỡ (hitPoints = 999),
+     * thường được dùng để tạo biên hoặc chướng ngại vật cố định.
+     * Điểm thưởng bằng điểm cơ bản của gạch.
+     */
+    GOLD(999, "brick_gold", Constants.Scoring.SCORE_BRICK_BASE + 0);
+
+    /** Điểm máu (số lần va chạm) cần thiết để phá hủy gạch. */
     private final int hitPoints;
+
+    /** Tên của tài nguyên hình ảnh (sprite) đại diện cho gạch. */
     private final String spriteName;
+
+    /** Điểm cơ bản mà người chơi nhận được khi phá hủy gạch. */
     private final int baseScore;
 
     /**
-     * Constructor for BrickType enum.
-     * @param hitPoints Number of hits required to destroy the brick
-     * @param spriteName Name of the sprite file for the brick
-     * @param baseScore Base score value when the brick is destroyed
+     * <p>Constructor cho enum BrickType.</p>
+     *
+     * @param hitPoints Số lần va chạm tối thiểu cần thiết để phá hủy gạch.
+     * @param spriteName Tên tệp hình ảnh (sprite) của gạch.
+     * @param baseScore Điểm thưởng cơ bản khi phá hủy gạch.
      */
     BrickType(int hitPoints, String spriteName, int baseScore) {
         this.hitPoints = hitPoints;
@@ -37,42 +63,29 @@ public enum BrickType {
     }
 
     /**
-     * Get the number of hits required to destroy this brick.
-     * @return Number of hits required
+     * <p>Trả về số điểm máu (hit points) của loại gạch.</p>
+     *
+     * @return Số lần va chạm cần thiết để phá hủy gạch.
      */
     public int getHitPoints() {
         return hitPoints;
     }
 
     /**
-     * Get the sprite file name for this brick type.
-     * @return Sprite file name
+     * <p>Trả về tên sprite (hình ảnh) của loại gạch.</p>
+     *
+     * @return Tên tệp hình ảnh của gạch.
      */
     public String getSpriteName() {
         return spriteName;
     }
 
     /**
-     * Get the base score value for destroying this brick.
-     * @return Base score value
+     * <p>Trả về điểm cơ bản (base score) của loại gạch.</p>
+     *
+     * @return Điểm thưởng khi gạch bị phá hủy.
      */
     public int getBaseScore() {
         return baseScore;
-    }
-
-    /**
-     * Check if this brick type is breakable.
-     * @return true if the brick can be destroyed, false for indestructible bricks (GOLD)
-     */
-    public boolean isBreakable() {
-        return this != GOLD;
-    }
-
-    /**
-     * Check if this brick type is a special brick (SILVER or GOLD).
-     * @return true if this is a special brick, false otherwise
-     */
-    public boolean isSpecial() {
-        return this == SILVER || this == GOLD;
     }
 }

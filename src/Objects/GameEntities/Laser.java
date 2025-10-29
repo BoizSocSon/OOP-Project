@@ -2,73 +2,71 @@ package Objects.GameEntities;
 
 import GeometryPrimitives.Velocity;
 import Objects.Core.MovableObject;
-import Render.Renderer;
+import Utils.Constants;
 
 /**
- * Laser bullet shot from paddle with laser power-up.
- * 
- * Features:
- * - Moves straight up
- * - Destroys bricks on collision
- * - Auto-destroys when off-screen
- * 
- * Physics:
- * - Width: 4px
- * - Height: 16px
- * - Velocity: (0, -8) - fast upward movement
- * 
- * @author SteveHoang aka BoizSocSon
+ * <p>Lớp đại diện cho đối tượng **Tia Laser** được bắn ra trong trò chơi.
+ * Tia Laser là một {@link MovableObject} di chuyển thẳng đứng lên trên
+ * và tự hủy khi ra khỏi màn hình hoặc va chạm với mục tiêu.</p>
  */
-public class Laser extends MovableObject {
-    private static final double LASER_WIDTH = 4.0;
-    private static final double LASER_HEIGHT = 16.0;
-    private static final double LASER_SPEED = -8.0; // Negative = upward
-    
-    private boolean destroyed = false;
+public class Laser extends MovableObject{
+
+    /** Trạng thái bị phá hủy của tia laser (true nếu đã bị phá hủy hoặc ra khỏi màn hình). */
+    private boolean destroyed;
 
     /**
-     * Creates a new laser at specified position.
-     * @param x X coordinate (left edge)
-     * @param y Y coordinate (top edge)
+     * <p>Constructor khởi tạo một tia laser.</p>
+     * <p>Tự động thiết lập kích thước và vận tốc ban đầu (di chuyển lên trên).</p>
+     *
+     * @param x Tọa độ x của góc trên bên trái tia laser.
+     * @param y Tọa độ y của góc trên bên trái tia laser.
      */
     public Laser(double x, double y) {
-        super(x, y, LASER_WIDTH, LASER_HEIGHT);
-        setVelocity(new Velocity(0, LASER_SPEED));
+        // Gọi constructor của lớp cha (MovableObject) để thiết lập vị trí và kích thước
+        super(x, y, Constants.Laser.LASER_WIDTH, Constants.Laser.LASER_HEIGHT);
+
+        // Thiết lập vận tốc: dx=0 (không di chuyển ngang), dy = -LASER_SPEED (di chuyển lên trên)
+        setVelocity(new Velocity(0, -Constants.Laser.LASER_SPEED));
+
+        this.destroyed = false; // Ban đầu tia laser chưa bị phá hủy
     }
 
+    /**
+     * <p>Cập nhật trạng thái và vị trí của tia laser trong mỗi vòng lặp game.</p>
+     * <p>Chỉ di chuyển nếu tia laser chưa bị phá hủy.</p>
+     */
     @Override
     public void update() {
-        if (destroyed) return;
-        
-        // Move upward
+        if (destroyed) {
+            // Nếu đã bị phá hủy, không làm gì cả
+            return;
+        }
+        // Di chuyển tia laser theo vận tốc đã thiết lập
         move();
     }
 
-    @Override
-    public void render(Renderer renderer) {
-        if (destroyed) return;
-        
-        // Use sprite rendering - renderer will handle loading from cache
-        renderer.drawSprite("laser_bullet.png", getX(), getY());
-    }
-
     /**
-     * Checks if laser has moved off screen (top edge).
-     * @return true if laser is above screen
+     * <p>Kiểm tra xem tia laser đã di chuyển ra khỏi giới hạn phía trên màn hình hay chưa.</p>
+     *
+     * @return {@code true} nếu tia laser đã vượt qua giới hạn trên của khu vực chơi, ngược lại {@code false}.
      */
     public boolean isOffScreen() {
-        return getY() + getHeight() < 0;
+        // Kiểm tra nếu tọa độ y + chiều cao (đáy của laser) nhỏ hơn giới hạn trên
+        return getY() + getHeight() < Constants.Window.WINDOW_TOP_OFFSET + Constants.Borders.BORDER_TOP_HEIGHT;
     }
 
     /**
-     * Marks laser for destruction.
+     * <p>Thiết lập trạng thái của tia laser là bị phá hủy.</p>
+     * <p>Khi bị phá hủy, tia laser sẽ ngừng cập nhật và sẽ được loại bỏ khỏi game.</p>
      */
     public void destroy() {
         this.destroyed = true;
     }
 
     /**
-     * Checks if laser is destroyed.
+     * <p>Kiểm tra xem tia laser có còn hoạt động (alive) hay không.</p>
+     *
+     * @return {@code true} nếu tia laser chưa bị phá hủy, ngược lại {@code false}.
      */
     @Override
     public boolean isAlive() {
