@@ -33,6 +33,9 @@ public class Paddle extends MovableObject{
 
     /** Cờ báo hiệu hoạt ảnh có đang được chơi hay không. */
     private boolean animationPlaying = false;
+    
+    // Timers for effects
+    private long expandExpiryTime = 0; // When wide paddle should shrink
 
     // Timers for effects
     /** Thời điểm hiệu ứng mở rộng (WIDE) hết hạn. */
