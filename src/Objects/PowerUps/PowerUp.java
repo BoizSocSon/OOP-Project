@@ -7,150 +7,125 @@ import GeometryPrimitives.Velocity;
 import Objects.Core.GameObject;
 import Objects.GameEntities.Paddle;
 import Render.Animation;
-import Render.Renderer;
 import Utils.AnimationFactory;
 import Utils.Constants;
 
 /**
- * Base class for power-ups that fall from destroyed bricks.
- *
- * Design:
- * - Each powerup has a type (PowerUpType enum)
- * - Falls down with constant velocity
- * - Has animated sprite (8 frames, looping)
- * - Abstract methods for applying/removing effects
- * 
- * Lifecycle:
- * 1. Spawned from brick at (x, y)
- * 2. Falls down each frame
- * 3. Collected by paddle → apply effect
- * 4. If timed effect → schedule removal
- * 5. Destroyed when off-screen or collected
- * 
- * @author SteveHoang aka BoizSocSon
+ * <p>Lớp trừu tượng (abstract class) cơ sở cho tất cả các đối tượng **PowerUp** trong trò chơi.
+ * PowerUp là các vật phẩm rơi xuống từ gạch bị phá hủy, cung cấp các hiệu ứng
+ * tạm thời hoặc vĩnh viễn cho người chơi khi được thu thập.</p>
  */
 public abstract class PowerUp implements GameObject {
-    protected double x;
-    protected double y;
-    protected final double width;
-    protected final double height;
-    protected final PowerUpType type;
-    protected final Velocity velocity;
-    protected final Animation animation;
-    protected boolean collected = false;
-    protected boolean active = true;
+
+    /** Tọa độ x của góc trên bên trái PowerUp. */
+    private double x;
+
+    /** Tọa độ y của góc trên bên trái PowerUp. */
+    private double y;
+
+    /** Chiều rộng cố định của PowerUp. */
+    private final double width;
+
+    /** Chiều cao cố định của PowerUp. */
+    private final double height;
+
+    /** Loại PowerUp cụ thể (ví dụ: CATCH, LASER, LIFE). */
+    private final PowerUpType type;
+
+    /** Vận tốc di chuyển (rơi xuống) của PowerUp. */
+    private final Velocity velocity;
+
+    /** Hoạt ảnh (animation) trực quan của PowerUp. */
+    private final Animation animation;
+
+    /** Cờ báo hiệu PowerUp đã được thanh đỡ thu thập hay chưa. */
+    private boolean collected;
+
+    /** Cờ báo hiệu PowerUp còn hoạt động trong game hay không (đã rơi khỏi màn hình hoặc đã thu thập). */
+    private boolean active;
 
     /**
-     * Creates a PowerUp at specified position.
-     * 
-     * @param x X-coordinate (top-left)
-     * @param y Y-coordinate (top-left)
-     * @param type PowerUpType enum value
+     * <p>Constructor khởi tạo một PowerUp.</p>
+     *
+     * @param x Tọa độ x ban đầu.
+     * @param y Tọa độ y ban đầu.
+     * @param type Loại PowerUp cụ thể.
      */
     public PowerUp(double x, double y, PowerUpType type) {
+        this.type = type;
         this.x = x;
         this.y = y;
-        this.type = type;
+        // Thiết lập kích thước cố định từ Constants
         this.width = Constants.PowerUps.POWERUP_WIDTH;
         this.height = Constants.PowerUps.POWERUP_HEIGHT;
-        
-        // Constant downward velocity
+
+        this.collected = false;
+        this.active = true;
+
+        // Thiết lập vận tốc mặc định (rơi thẳng đứng xuống dưới)
         this.velocity = new Velocity(0, Constants.PowerUps.POWERUP_FALL_SPEED);
-        
-        // Load animated sprite
+        // Tạo và bắt đầu hoạt ảnh
         this.animation = AnimationFactory.createPowerUpAnimation(type);
         this.animation.play();
     }
 
     /**
-     * Updates powerup state each frame.
-     * 
-     * Actions:
-     * - Move down
-     * - Update animation frames (flipbook)
+     * <p>Cập nhật vị trí (di chuyển) và trạng thái hoạt ảnh của PowerUp.</p>
      */
     public void update() {
-        // Move down
+        // Cập nhật vị trí bằng cách áp dụng vận tốc
         Point currentPos = new Point(x, y);
         Point newPos = velocity.applyToPoint(currentPos);
         this.x = newPos.getX();
         this.y = newPos.getY();
-        
-        // Update animation (flipbook frames)
+
+        // Cập nhật hoạt ảnh
         if (animation != null) {
             animation.update();
         }
     }
 
     /**
-     * Renders the powerup using its current animation frame.
-     * 
-     * PowerUp animation is a flipbook (8 frames) that simulates
-     * rotation around horizontal axis.
-     * 
-     * @param renderer The renderer to use
-     */
-    public void render(Renderer renderer) {
-        if (animation != null && active) {
-            renderer.drawPowerUp(this);
-        }
-    }
-
-    /**
-     * Gets the animation object for rendering.
-     * @return Animation containing 8 frames of powerup sprite
+     * <p>Trả về đối tượng hoạt ảnh của PowerUp.</p>
+     *
+     * @return Đối tượng {@link Animation}.
      */
     public Animation getAnimation() {
         return animation;
     }
 
     /**
-     * Checks collision between this powerup and the paddle.
-     * Uses AABB (Axis-Aligned Bounding Box) collision detection.
-     * 
-     * Algorithm:
-     * - PowerUp falls and paddle moves horizontally
-     * - Collision occurs when rectangles overlap on both X and Y axes
-     * - No collision if any gap exists between rectangles
-     * 
-     * @param paddle The paddle to check collision with
-     * @return true if powerup intersects with paddle bounds
+     * <p>Kiểm tra va chạm giữa PowerUp và thanh đỡ (Paddle).</p>
+     *
+     * @param paddle Đối tượng thanh đỡ cần kiểm tra va chạm.
+     * @return {@code true} nếu có va chạm với thanh đỡ và PowerUp đang hoạt động, ngược lại {@code false}.
      */
     public boolean checkPaddleCollision(Paddle paddle) {
         if (paddle == null || !active) {
             return false;
         }
-        
-        Rectangle powerUpBounds = getBounds();
-        Rectangle paddleBounds = paddle.getBounds();
-        
-        // AABB collision detection
-        // No collision if:
-        // - PowerUp right edge is left of paddle left edge
-        // - PowerUp left edge is right of paddle right edge
-        // - PowerUp bottom edge is above paddle top edge
-        // - PowerUp top edge is below paddle bottom edge
-        boolean noCollision = 
-            (powerUpBounds.getUpperLeft().getX() + powerUpBounds.getWidth() < paddleBounds.getUpperLeft().getX()) ||
-            (powerUpBounds.getUpperLeft().getX() > paddleBounds.getUpperLeft().getX() + paddleBounds.getWidth()) ||
-            (powerUpBounds.getUpperLeft().getY() + powerUpBounds.getHeight() < paddleBounds.getUpperLeft().getY()) ||
-            (powerUpBounds.getUpperLeft().getY() > paddleBounds.getUpperLeft().getY() + paddleBounds.getHeight());
-        
-        return !noCollision;
+
+        // Kiểm tra xem hình chữ nhật bao quanh có giao nhau hay không
+        return getBounds().intersects(paddle.getBounds());
     }
 
-    // Accessors
+    // ============================================================
+    // Getters and Status methods
+    // ============================================================
+
     public double getX() { return x; }
     public double getY() { return y; }
     public double getWidth() { return width; }
     public double getHeight() { return height; }
+    /** Trả về loại PowerUp (ví dụ: CATCH, LASER). */
     public PowerUpType getType() { return type; }
+    /** Kiểm tra xem PowerUp có còn hoạt động (chưa bị thu thập/hủy) hay không. */
     public boolean isActive() { return active; }
+    /** Kiểm tra xem PowerUp đã được thu thập hay chưa. */
     public boolean isCollected() { return collected; }
-    
+
     /**
-     * Marks this powerup as collected by the paddle.
-     * Once collected, it stops falling and will be removed from active list.
+     * <p>Thiết lập trạng thái đã được thu thập và vô hiệu hóa PowerUp.</p>
      */
     public void collect() {
         this.collected = true;
@@ -158,40 +133,46 @@ public abstract class PowerUp implements GameObject {
     }
 
     /**
-     * Applies the powerup effect to the game.
-     * This method must be implemented by each specific powerup subclass.
-     * 
-     * Examples:
-     * - CatchPowerUp: Enable catch mode on paddle
-     * - ExpandPaddlePowerUp: Increase paddle width
-     * - LifePowerUp: Add extra life to player
-     * 
-     * @param gameManager The game manager to apply effects to
+     * <p>Phương thức trừu tượng: Áp dụng hiệu ứng của PowerUp lên trò chơi.</p>
+     * <p>Phải được triển khai bởi các lớp PowerUp cụ thể.</p>
+     *
+     * @param gameManager Đối tượng quản lý trò chơi để thay đổi trạng thái game.
      */
     public abstract void applyEffect(GameManager gameManager);
 
     /**
-     * Removes/reverts the powerup effect when it expires.
-     * Only relevant for timed effects (CATCH, EXPAND, LASER, SLOW).
-     * Instant effects (LIFE, DUPLICATE, WARP) don't need removal.
-     * 
-     * @param gameManager The game manager to remove effects from
+     * <p>Phương thức trừu tượng: Gỡ bỏ hiệu ứng của PowerUp khỏi trò chơi.</p>
+     * <p>Phải được triển khai bởi các lớp PowerUp cụ thể (thường dùng cho hiệu ứng tạm thời).</p>
+     *
+     * @param gameManager Đối tượng quản lý trò chơi để hoàn tác trạng thái game.
      */
     public abstract void removeEffect(GameManager gameManager);
 
+    /**
+     * <p>Triển khai từ {@link GameObject}: Trả về hình chữ nhật giới hạn của PowerUp.</p>
+     *
+     * @return Đối tượng {@link Rectangle} đại diện cho giới hạn va chạm.
+     */
     @Override
     public Rectangle getBounds() {
         return new Rectangle(new Point(x, y), width, height);
     }
 
+    /**
+     * <p>Triển khai từ {@link GameObject}: Kiểm tra xem PowerUp còn hoạt động (active) hay không.</p>
+     *
+     * @return Giá trị của {@link #active}.
+     */
     @Override
     public boolean isAlive() {
         return active;
     }
 
+    /**
+     * <p>Triển khai từ {@link GameObject}: Đặt trạng thái PowerUp là bị phá hủy (hủy hoạt).</p>
+     */
     @Override
     public void destroy() {
         active = false;
     }
 }
-

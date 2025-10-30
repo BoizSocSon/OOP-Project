@@ -1,45 +1,55 @@
 package Objects.Bricks;
 
-import Render.Renderer;
-
 /**
- * GoldBrick - viên gạch vàng đặc biệt.
- *
- * Chức năng:
- * - Không thể bị phá hủy.
- * - Chỉ phản xạ bóng, không thay đổi trạng thái.
+ * <p>Lớp đại diện cho loại gạch Vàng (Gold Brick) trong trò chơi.
+ * Đây là loại gạch gần như **không thể phá hủy**
+ * (thể hiện qua việc phương thức {@link #takeHit()} không làm gì cả)
+ * và thường được dùng làm chướng ngại vật cố định hoặc biên giới.</p>
  */
-public class GoldBrick extends Brick {
+public class GoldBrick extends Brick{
 
     /**
-     * Constructor: GoldBrick không thể bị phá hủy.
+     * <p>Constructor khởi tạo một viên gạch Vàng.</p>
+     *
+     * @param x Tọa độ x của góc trên bên trái viên gạch.
+     * @param y Tọa độ y của góc trên bên trái viên gạch.
+     * @param width Chiều rộng của viên gạch.
+     * @param height Chiều cao của viên gạch.
      */
     public GoldBrick(double x, double y, double width, double height) {
-        super(x, y, width, height, Integer.MAX_VALUE);
+        // Gọi constructor của lớp cha (Brick) với hitPoints lấy từ BrickType.GOLD
+        // Mặc dù hitPoints là 999 nhưng GoldBrick vẫn override takeHit() để đảm bảo không bị phá hủy.
+        super(x, y, width, height, BrickType.GOLD.getHitPoints());
     }
 
     /**
-     * Không làm gì khi bị hit.
+     * <p>Xử lý sự kiện khi gạch bị va chạm (hit).
+     * Gạch Vàng là **không thể phá hủy**, nên phương thức này không thực hiện hành động nào
+     * (không giảm hit points) để giữ viên gạch luôn tồn tại.</p>
      */
     @Override
     public void takeHit() {
-        // Không giảm hp, không thay đổi trạng thái.
-        return;
-    }
-    
-    /**
-     * Update method - không cần làm gì cho gold brick.
-     */
-    @Override
-    public void update() {
-        // Gold brick không có animation hoặc state changes
+        // Gold bricks are indestructible; do nothing on hit
+        // Gạch vàng không thể phá hủy; không làm gì khi bị va chạm.
     }
 
     /**
-     * Render gold brick sprite.
+     * <p>Cập nhật trạng thái của gạch Vàng trong mỗi vòng lặp game.
+     * Gạch Vàng không có hành vi đặc biệt nào cần cập nhật.</p>
      */
     @Override
-    public void render(Renderer renderer) {
-        renderer.drawSprite(BrickType.GOLD.getSpriteName(), getX(), getY());
+    public void update() {
+        // GoldBrick does not have special behavior in update
+        // GoldBrick không có hành vi đặc biệt nào cần cập nhật trong phương thức này.
+    }
+
+    /**
+     * <p>Trả về loại gạch cụ thể (BrickType) của đối tượng này.</p>
+     *
+     * @return Luôn trả về {@link BrickType#GOLD}.
+     */
+    @Override
+    public BrickType getBrickType() {
+        return BrickType.GOLD;
     }
 }

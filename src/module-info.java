@@ -4,5 +4,5 @@ module Arkanoid1 {
     requires java.desktop;
 
     exports ArkanoidGame;
-    exports Test;
+    // exports Test;
 }
