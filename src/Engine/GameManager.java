@@ -28,11 +28,7 @@ public class GameManager {
     public List<Ball> balls = new ArrayList<>();
     public List<Laser> lasers = new ArrayList<>();
     public List<Brick> bricks = new ArrayList<>();
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
     // Managers
     private CollisionManager collisionManager;
     private PowerUpManager powerUpManager;
@@ -40,11 +36,7 @@ public class GameManager {
     private StateManager stateManager;
     private ScoreManager scoreManager;
     // private AudioManager audioManager; // To be implemented
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
     // Game state
     public int width;
     public int height;
@@ -53,28 +45,17 @@ public class GameManager {
 
     /**
      * Creates GameManager with play area dimensions.
-<<<<<<< HEAD
      *
      * NOTE: width and height are PLAY AREA size (excluding UI bar).
      * CanvasRenderer will add offset when rendering.
      *
-=======
-     * 
-     * NOTE: width and height are PLAY AREA size (excluding UI bar).
-     * CanvasRenderer will add offset when rendering.
-     *
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
      * @param width  Play area width (pixels) - usually 600
      * @param height Play area height (pixels) - usually 650 (800 - 150 UI bar)
      */
     public GameManager(int width, int height) {
         this.width = width;
         this.height = height;
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
         // Initialize managers
         this.collisionManager = new CollisionManager(width, height);
         this.powerUpManager = PowerUpManager.getInstance();
@@ -82,11 +63,7 @@ public class GameManager {
         this.roundsManager = new RoundsManager(width, height);
         this.stateManager = new StateManager();
         this.scoreManager = new ScoreManager();
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
         // Initialize game
         initGame();
     }
@@ -99,11 +76,7 @@ public class GameManager {
         double paddleW = Constants.Physics.PADDLE_WIDTH;
         double paddleH = Constants.Physics.PADDLE_HEIGHT;
         paddle = new Paddle((width - paddleW) / 2.0, height - 60, paddleW, paddleH, Constants.Physics.PADDLE_SPEED);
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
         // Trigger materialize animation
         paddle.playMaterializeAnimation();
 
@@ -119,11 +92,7 @@ public class GameManager {
 
     /**
      * Main update loop - called every frame.
-<<<<<<< HEAD
      *
-=======
-     * 
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
      * NEW ARCHITECTURE (Tuần 2):
      * - Uses StateManager to control flow
      * - Delegates collisions to CollisionManager
@@ -134,17 +103,10 @@ public class GameManager {
         if (!stateManager.isPlaying()) {
             return;
         }
-<<<<<<< HEAD
 
         // Update game objects
         paddle.update();
 
-=======
-        
-        // Update game objects
-        paddle.update();
-        
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
         // If ball is attached to paddle, keep it positioned
         if (ballAttached && !balls.isEmpty()) {
             Ball ball = balls.get(0);
@@ -152,7 +114,6 @@ public class GameManager {
             double ballY = paddle.getY() - ball.getHeight() - 1.0;
             ball.setCenter(new Point(paddleCenterX, ballY + ball.getHeight() / 2.0));
             return; // Skip physics until launch
-<<<<<<< HEAD
         }
 
         // Update all balls
@@ -306,191 +267,24 @@ public class GameManager {
     }
 
     /**
-=======
-        }
-        
-        // Update all balls
-        for (Ball ball : balls) {
-            ball.update();
-        }
-        
-        // Update all lasers
-        for (Laser laser : lasers) {
-            laser.update();
-        }
-        
-        // Update PowerUpManager (falling powerups)
-        powerUpManager.update(paddle);
-        
-        // Note: PowerUpManager handles its own collision detection and applies effects
-        // No need to manually check collisions here
-        
-        // Handle all collisions
-        handleCollisions();
-        
-        // Remove off-screen lasers
-        lasers.removeIf(Laser::isOffScreen);
-        
-        // Check game conditions (win/lose)
-        checkGameConditions();
-        
-        // Clamp paddle to screen bounds
-        if (paddle.getX() < 0) {
-            paddle.setX(0);
-        }
-        if (paddle.getX() + paddle.getWidth() > width) {
-            paddle.setX(width - paddle.getWidth());
-        }
-    }
-    
-    /**
-     * Handles all collision detection and responses.
-     * Delegates to CollisionManager for clean separation.
-     */
-    private void handleCollisions() {
-        // Ball collisions
-        for (Ball ball : new ArrayList<>(balls)) {
-            // Ball vs walls
-            collisionManager.checkBallWallCollisions(ball, 0, width, 0);
-            
-            // Ball vs paddle
-            if (collisionManager.checkBallPaddleCollision(ball, paddle)) {
-                // Check if catch mode triggered
-                if (paddle.isCatchModeEnabled() && !ballAttached) {
-                    ballAttached = true;
-                    ball.setVelocity(new Velocity(0, 0));
-                    System.out.println("GameManager: Ball caught!");
-                }
-            }
-            
-            // Ball vs bricks
-            List<Brick> destroyedBricks = collisionManager.checkBallBrickCollisions(ball, bricks);
-            
-            // Award score for destroyed bricks
-            for (Brick brick : destroyedBricks) {
-                int points = brick instanceof Objects.Bricks.SilverBrick ? 100 : 50;
-                scoreManager.addScore(points);
-                
-                // Spawn PowerUp from brick
-                double brickCenterX = brick.getX() + brick.getWidth() / 2.0;
-                double brickCenterY = brick.getY() + brick.getHeight() / 2.0;
-                powerUpManager.spawnFromBrick(brickCenterX, brickCenterY, Objects.Bricks.BrickType.BLUE);
-            }
-        }
-        
-        // Laser collisions
-        Map<Laser, Brick> laserHits = collisionManager.checkLaserBrickCollisions(lasers, bricks);
-        
-        for (Map.Entry<Laser, Brick> entry : laserHits.entrySet()) {
-            Laser laser = entry.getKey();
-            Brick brick = entry.getValue();
-            
-            // Destroy laser
-            laser.destroy();
-            
-            // Award score
-            int points = brick instanceof Objects.Bricks.SilverBrick ? 100 : 50;
-            scoreManager.addScore(points);
-        }
-    }
-    
-    /**
-     * Checks win/lose conditions and updates game state.
-     */
-    private void checkGameConditions() {
-        // Check if all balls fell off screen (lose life)
-        balls.removeIf(ball -> ball.getY() > height);
-        
-        if (balls.isEmpty()) {
-            loseLife();
-            return;
-        }
-        
-        // Check if round is complete
-        if (roundsManager.isRoundComplete()) {
-            if (roundsManager.hasNextRound()) {
-                stateManager.setState(GameState.LEVEL_COMPLETE);
-                
-                // Schedule next round load after delay
-                // In a real implementation, this would be in a timer callback
-                roundsManager.nextRound();
-                bricks = roundsManager.getCurrentBricks();
-                stateManager.setState(GameState.PLAYING);
-            } else {
-                // All rounds completed - WIN!
-                stateManager.setState(GameState.WIN);
-            }
-        }
-    }
-    
-    /**
-     * Handles losing a life.
-     */
-    private void loseLife() {
-        lives--;
-        scoreManager.addScore(-500); // Penalty
-        
-        paddle.playExplodeAnimation();
-        // AudioManager.playSFX(LOSE_LIFE) - to be implemented
-        
-        if (lives <= 0) {
-            // Game Over
-            stateManager.setState(GameState.GAME_OVER);
-        } else {
-            // Reset ball
-            resetBall();
-        }
-    }
-    
-    /**
-     * Resets ball to paddle position after losing a life.
-     */
-    private void resetBall() {
-        balls.clear();
-        
-        double ballRadius = Constants.Physics.BALL_RADIUS;
-        double paddleCenterX = paddle.getX() + paddle.getWidth() / 2.0;
-        double ballY = paddle.getY() - ballRadius * 2 - 5;
-        
-        Ball ball = new Ball(paddleCenterX - ballRadius, ballY, ballRadius, new Velocity(0, 0));
-        balls.add(ball);
-        ballAttached = true;
-        
-        paddle.playMaterializeAnimation();
-    }
-
-    /**
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
      * Resets game to initial state.
      * Called when player wants to restart.
      */
     public void reset() {
         lives = Constants.GameRules.INITIAL_LIVES;
         ballAttached = true;
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
         // Reset managers
         scoreManager.reset();
         roundsManager.reset();
         powerUpManager = PowerUpManager.getInstance();
         powerUpManager.setGameManager(this);
         stateManager.setState(GameState.MENU);
-<<<<<<< HEAD
 
         // Clear lists
         balls.clear();
         lasers.clear();
 
-=======
-        
-        // Clear lists
-        balls.clear();
-        lasers.clear();
-        
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
         // Reinitialize game
         initGame();
     }
@@ -503,30 +297,17 @@ public class GameManager {
         if (!ballAttached || balls.isEmpty()) {
             return;
         }
-<<<<<<< HEAD
 
         ballAttached = false;
 
-=======
-        
-        ballAttached = false;
-        
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
         // Launch all balls with initial velocity
         for (Ball ball : balls) {
             ball.setVelocity(new Velocity(0, -Constants.Physics.BALL_INITIAL_SPEED));
         }
-<<<<<<< HEAD
 
         System.out.println("GameManager: Ball(s) launched!");
     }
 
-=======
-        
-        System.out.println("GameManager: Ball(s) launched!");
-    }
-    
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
     /**
      * Shoots laser from paddle (Space bar or fire button).
      * Called by input handler when player wants to shoot.
@@ -535,17 +316,10 @@ public class GameManager {
         if (!paddle.isLaserEnabled()) {
             return;
         }
-<<<<<<< HEAD
 
         List<Laser> newLasers = paddle.shootLaser();
         lasers.addAll(newLasers);
 
-=======
-        
-        List<Laser> newLasers = paddle.shootLaser();
-        lasers.addAll(newLasers);
-        
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
         if (!newLasers.isEmpty()) {
             System.out.println("GameManager: Fired " + newLasers.size() + " lasers");
         }
@@ -586,17 +360,12 @@ public class GameManager {
      */
     public void duplicateBalls() {
         List<Ball> newBalls = new ArrayList<>();
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
         for (Ball ball : balls) {
             // Create two copies with ±30° angles
             Velocity vel = ball.getVelocity();
             double speed = Math.hypot(vel.getDx(), vel.getDy());
             double angle = Math.atan2(vel.getDy(), vel.getDx());
-<<<<<<< HEAD
 
             // Left ball (-30°)
             double leftAngle = angle - Math.toRadians(30);
@@ -617,28 +386,6 @@ public class GameManager {
             newBalls.add(rightBall);
         }
 
-=======
-            
-            // Left ball (-30°)
-            double leftAngle = angle - Math.toRadians(30);
-            Ball leftBall = new Ball(
-                ball.getX(), ball.getY(), 
-                Constants.Physics.BALL_RADIUS,
-                new Velocity(speed * Math.cos(leftAngle), speed * Math.sin(leftAngle))
-            );
-            newBalls.add(leftBall);
-            
-            // Right ball (+30°)
-            double rightAngle = angle + Math.toRadians(30);
-            Ball rightBall = new Ball(
-                ball.getX(), ball.getY(),
-                Constants.Physics.BALL_RADIUS,
-                new Velocity(speed * Math.cos(rightAngle), speed * Math.sin(rightAngle))
-            );
-            newBalls.add(rightBall);
-        }
-        
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
         balls.addAll(newBalls);
         System.out.println("GameManager: Balls duplicated! Total: " + balls.size());
     }
@@ -718,11 +465,7 @@ public class GameManager {
         for (Ball ball : balls) {
             Velocity currentVel = ball.getVelocity();
             double speed = Math.hypot(currentVel.getDx(), currentVel.getDy());
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
             // If speed is very slow, restore to initial speed
             if (speed < Constants.Physics.BALL_MIN_SPEED) {
                 double angle = Math.atan2(currentVel.getDy(), currentVel.getDx());
@@ -765,72 +508,7 @@ public class GameManager {
     public PowerUpManager getPowerUpManager() {
         return powerUpManager;
     }
-    
-    /**
-     * Gets the StateManager instance.
-     * @return StateManager instance
-     */
-    public StateManager getStateManager() {
-        return stateManager;
-    }
-    
-    /**
-     * Gets the RoundsManager instance.
-     * @return RoundsManager instance
-     */
-    public RoundsManager getRoundsManager() {
-        return roundsManager;
-    }
-    
-    /**
-     * Gets the ScoreManager instance.
-     * @return ScoreManager instance
-     */
-    public ScoreManager getScoreManager() {
-        return scoreManager;
-    }
-    
-    /**
-     * Gets the CollisionManager instance.
-     * @return CollisionManager instance
-     */
-    public CollisionManager getCollisionManager() {
-        return collisionManager;
-    }
-    
-    /**
-     * Gets current score (from ScoreManager).
-     * @return Current score
-     */
-    public int getScore() {
-        return scoreManager.getScore();
-    }
-    
-    /**
-     * Checks if game is over.
-     * @return true if game ended (GAME_OVER or WIN state)
-     */
-    public boolean isGameOver() {
-        return stateManager.isGameOver();
-    }
-    
-    /**
-     * Checks if player won.
-     * @return true if in WIN state
-     */
-    public boolean hasWon() {
-        return stateManager.getState() == GameState.WIN;
-    }
-    
-    /**
-     * Gets list of active lasers.
-     * @return List of lasers
-     */
-    public List<Laser> getLasers() {
-        return lasers;
-    }
 
-<<<<<<< HEAD
     /**
      * Gets the StateManager instance.
      * @return StateManager instance
@@ -895,6 +573,4 @@ public class GameManager {
         return lasers;
     }
 
-=======
->>>>>>> 8656814 (feat: Implement rounds classes and round manger. Build up Engine Manager)
 }
