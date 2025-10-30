@@ -1,47 +1,83 @@
 package Objects.GameEntities;
 
 /**
- * Enum định nghĩa các trạng thái hoạt ảnh của Paddle.
- *
- * Mỗi state tương ứng với một bộ sprite animation hoặc sprite đơn.
- * AnimationFactory sử dụng enum này để tạo Animation phù hợp.
+ * <p>Enum đại diện cho các trạng thái hoạt ảnh (animation state) khác nhau của **Thanh đỡ (Paddle)**.
+ * Mỗi trạng thái xác định tên sprite cơ sở, số lượng khung hình, và liệu hoạt ảnh có lặp lại hay không.</p>
  */
 public enum PaddleState {
-    /**
-     * Trạng thái bình thường (mặc định)
-     * Sprite: paddle.png (static, không animation)
-     */
-    NORMAL,
+
+    // Các trạng thái hoạt ảnh của thanh đỡ
+
+    /** Trạng thái bình thường, sprite tĩnh. */
+    NORMAL("paddle", 1, false),
+
+    /** Trạng thái mở rộng, hoạt ảnh chuyển đổi (chơi một lần). */
+    WIDE("paddle_wide", 9, false),                 // Transition animation (one-shot)
+
+    /** Trạng thái mở rộng và nhấp nháy (cảnh báo hết hạn hiệu ứng), hoạt ảnh lặp. */
+    WIDE_PULSATE("paddle_wide_pulsate", 4, true),  // Warning animation (loop)
+
+    /** Trạng thái Laser, hoạt ảnh chuyển đổi (chơi một lần). */
+    LASER("paddle_laser", 16, false),              // Transition animation (one-shot)
+
+    /** Trạng thái Laser và nhấp nháy (cảnh báo hết hạn hiệu ứng), hoạt ảnh lặp. */
+    LASER_PULSATE("paddle_laser_pulsate", 4, true), // Warning animation (loop)
+
+    /** Trạng thái nhấp nháy chung (cảnh báo hết hạn hiệu ứng CATCH/SLOW), hoạt ảnh lặp. */
+    PULSATE("paddle_pulsate", 4, true),            // Warning animation (loop)
+
+    /** Trạng thái xuất hiện/khởi tạo, hoạt ảnh chơi một lần. */
+    MATERIALIZE("paddle_materialize", 15, false),  // Spawn animation (one-shot)
+
+    /** Trạng thái bị phá hủy/nổ, hoạt ảnh chơi một lần. */
+    EXPLODE("paddle_explode", 8, false);           // Death animation (one-shot)
+
+    /** Tiền tố (prefix) được sử dụng để tìm kiếm các tệp sprite tương ứng. */
+    private final String paddlePrefix;
+
+    /** Tổng số khung hình (frame count) trong hoạt ảnh của trạng thái này. */
+    private final int frameCount;
+
+    /** Xác định liệu hoạt ảnh có nên lặp lại (loop) hay không. */
+    private final boolean shouldLoop;
 
     /**
-     * Trạng thái paddle được mở rộng (EXPAND power-up)
-     * Animation: paddle_wide_1.png ... paddle_wide_9.png
+     * <p>Constructor cho enum PaddleState.</p>
+     *
+     * @param paddlePrefix Tiền tố tên sprite.
+     * @param frameCount Tổng số khung hình.
+     * @param shouldLoop Liệu hoạt ảnh có lặp lại không.
      */
-    WIDE,
+    PaddleState(String paddlePrefix, int frameCount, boolean shouldLoop) {
+        this.paddlePrefix = paddlePrefix;
+        this.frameCount = frameCount;
+        this.shouldLoop = shouldLoop;
+    }
 
     /**
-     * Trạng thái paddle có laser (LASER power-up)
-     * Animation: paddle_laser_1.png ... paddle_laser_16.png
+     * <p>Trả về tiền tố tên sprite của trạng thái này.</p>
+     *
+     * @return Chuỗi tiền tố sprite (ví dụ: "paddle_wide").
      */
-    LASER,
+    public String getPaddlePrefix() {
+        return paddlePrefix;
+    }
 
     /**
-     * Trạng thái paddle nhấp nháy (effect khi sắp hết power-up)
-     * Animation: paddle_pulsate_1.png ... paddle_pulsate_4.png
+     * <p>Trả về tổng số khung hình của hoạt ảnh.</p>
+     *
+     * @return Số lượng khung hình.
      */
-    PULSATE,
+    public int getFrameCount() {
+        return frameCount;
+    }
 
     /**
-     * Trạng thái paddle xuất hiện/hiện thân (spawn animation)
-     * Animation: paddle_materialize_1.png ... paddle_materialize_15.png
-     * Chạy 1 lần (loop=false)
+     * <p>Kiểm tra xem hoạt ảnh có nên lặp lại (loop) sau khi chơi hết hay không.</p>
+     *
+     * @return {@code true} nếu hoạt ảnh nên lặp lại (ví dụ: trạng thái cảnh báo), ngược lại {@code false}.
      */
-    MATERIALIZE,
-
-    /**
-     * Trạng thái paddle nổ (khi mất mạng)
-     * Animation: paddle_explode_1.png ... paddle_explode_8.png
-     * Chạy 1 lần (loop=false)
-     */
-    EXPLODE
+    public boolean shouldLoop() {
+        return shouldLoop;
+    }
 }
