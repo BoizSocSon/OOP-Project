@@ -5,45 +5,56 @@ import Objects.Bricks.BrickType;
 import Objects.PowerUps.PowerUpType;
 import Objects.GameEntities.PaddleState;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * CACHING LAYER - Singleton cache cho tất cả sprites trong game.
- * 
- * Kiến trúc:
- * AssetLoader (load từ disk) → **SpriteCache** (cache sprites) → AnimationFactory (tạo animations)
- * 
- * Chức năng:
- * - Cache tất cả images trong HashMap để tránh load lặp lại
- * - Gọi AssetLoader để load sprites từ disk
- * - Cung cấp API tiện lợi để lấy sprites theo type
- * 
- * Performance:
- * - Load time < 3 giây cho toàn bộ assets
- * - Không memory leak (images được reuse)
- * 
- * @author SteveHoang aka BoizSocSon
+ * Lớp Singleton chịu trách nhiệm tải, lưu trữ và quản lý toàn bộ sprite (hình ảnh)
+ * được sử dụng trong trò chơi Arkanoid.
+ * Các sprite được cache để tránh việc tải lại nhiều lần, giúp tăng hiệu năng.
  */
 public final class SpriteCache {
+
+    // Singleton instance duy nhất
     private static SpriteCache instance;
-    private final Map<String, Image> cache;
+
+    // Cache cho các ảnh tĩnh: bricks, ball, laser, paddle, edge, logo, ...
+    private final Map<String, Image> cache = new HashMap<>();
+
+    // Cache cho các ảnh động (frame animation)
+    private final List<Image> silverCrackCache = new ArrayList<>();
+    private final List<Image> powerUpCatchCache = new ArrayList<>();
+    private final List<Image> powerUpExpandCache = new ArrayList<>();
+    private final List<Image> powerUpLaserCache = new ArrayList<>();
+    private final List<Image> powerUpDuplicateCache = new ArrayList<>();
+    private final List<Image> powerUpSlowCache = new ArrayList<>();
+    private final List<Image> powerUPLifeCache = new ArrayList<>();
+    private final List<Image> powerUpWarpCache = new ArrayList<>();
+    private final List<Image> paddleWideCache = new ArrayList<>();
+    private final List<Image> paddleWidePulsateCache = new ArrayList<>();
+    private final List<Image> paddleLaserCache = new ArrayList<>();
+    private final List<Image> paddleLaserPulsateCache = new ArrayList<>();
+    private final List<Image> paddlePulsateCache = new ArrayList<>();
+    private final List<Image> paddleMaterializeCache = new ArrayList<>();
+    private final List<Image> paddleExplodeCache = new ArrayList<>();
+
+    // Biến đánh dấu trạng thái đã khởi tạo chưa
     private boolean initialized = false;
-    
-    private static final String BASE_PATH = Constants.Paths.GRAPHICS_PATH;
-    
+
+    // Tổng số sprite được load
+    private int totalSprites = 0;
+
+    // Đường dẫn gốc đến thư mục chứa hình ảnh
+    private static final String path = Constants.Paths.GRAPHICS_PATH;
+
+    // Constructor private để chặn khởi tạo trực tiếp
+    private SpriteCache() {}
+
     /**
-     * Private constructor cho singleton pattern.
-     */
-    private SpriteCache() {
-        cache = new HashMap<>();
-    }
-    
-    /**
-     * Lấy instance duy nhất của SpriteCache.
+     * Lấy instance duy nhất của SpriteCache (mẫu Singleton).
+     * @return instance của SpriteCache
      */
     public static synchronized SpriteCache getInstance() {
         if (instance == null) {
@@ -51,293 +62,243 @@ public final class SpriteCache {
         }
         return instance;
     }
-    
+
     /**
-     * Initialize cache - load tất cả sprites vào memory.
-     * 
-     * Load order:
-     * 1. Brick sprites (10 types × 10 crack frames + 1 normal = 11 per silver, 1 per others)
-     * 2. PowerUp sprites (7 types × 8 frames = 56 images)
-     * 3. Paddle sprites (6 states, tổng ~53 frames)
-     * 4. Laser sprites
-     * 5. UI sprites
-     * 
-     * @throws RuntimeException nếu critical sprites không load được
+     * Khởi tạo và tải toàn bộ sprite nếu chưa được load.
+     * Bao gồm: brick, power-up, paddle, ball, laser, edge, logo.
      */
-    public void initialize() {
+    public synchronized void initialize() {
         if (initialized) {
-            System.out.println("SpriteCache: Already initialized, skipping...");
+            System.out.println("SpriteCache: Already initialized, skipping.");
             return;
         }
-        
-        long startTime = System.currentTimeMillis();
-        System.out.println("SpriteCache: Initializing...");
-        
-        // Load brick sprites
+
+        long startTime = System.currentTimeMillis(); // Bắt đầu tính thời gian load
+
+        // 1. Load Brick sprites
         loadBrickSprites();
-        
-        // Load powerup sprites
+        // 2. Load PowerUp sprites
         loadPowerUpSprites();
-        
-        // Load paddle sprites
+        // 3. Load Paddle sprites
         loadPaddleSprites();
-        
-        // Load laser sprites
+        // 4. Load Ball sprite
+        loadBallSprite();
+        // 5. Load Laser sprites
         loadLaserSprites();
-        
-        // Load UI sprites (optional)
-        loadUISprites();
-        
+        // 6. Load Edge sprites
+        loadEdgeSprites();
+        // 7. Load Logo sprite
+        loadLogoSprite();
+
+        // Tính tổng số sprite đã load
+        totalSprites = cache.size()
+                + silverCrackCache.size()
+                + powerUpCatchCache.size()
+                + powerUpExpandCache.size()
+                + powerUpLaserCache.size()
+                + powerUpDuplicateCache.size()
+                + powerUpSlowCache.size()
+                + powerUPLifeCache.size()
+                + powerUpWarpCache.size()
+                + paddleWideCache.size()
+                + paddleWidePulsateCache.size()
+                + paddleLaserCache.size()
+                + paddleLaserPulsateCache.size()
+                + paddlePulsateCache.size()
+                + paddleMaterializeCache.size()
+                + paddleExplodeCache.size();
+
         long elapsed = System.currentTimeMillis() - startTime;
-        System.out.printf("SpriteCache: Loaded %d sprites in %d ms%n", cache.size(), elapsed);
-        
-        initialized = true;
+        System.out.printf("SpriteCache: Loaded %d sprites in %d ms%n", totalSprites, elapsed);
+
+        initialized = true; // Đánh dấu đã khởi tạo
     }
-    
+
     /**
-     * Load tất cả brick sprites.
-     */
-    private void loadBrickSprites() {
-        // Load brick sprites cho tất cả BrickType
-        for (BrickType type : BrickType.values()) {
-            String filename = type.getSpriteName();
-            loadImage(filename);
-        }
-        
-        // Load crack animation frames cho silver brick
-        for (int i = 1; i <= 10; i++) {
-            loadImage("brick_silver_" + i + ".png");
-        }
-    }
-    
-    /**
-     * Load tất cả powerup sprites.
-     */
-    private void loadPowerUpSprites() {
-        for (PowerUpType type : PowerUpType.values()) {
-            String prefix = type.getSpritePrefix();
-            for (int i = 1; i <= 8; i++) {
-                loadImage(prefix + "_" + i + ".png");
-            }
-        }
-    }
-    
-    /**
-     * Load tất cả paddle sprites.
-     */
-    private void loadPaddleSprites() {
-        // NORMAL: paddle.png (static)
-        loadImage("paddle.png");
-        
-        // WIDE: paddle_wide_1.png...9.png
-        for (int i = 1; i <= 9; i++) {
-            loadImage("paddle_wide_" + i + ".png");
-        }
-        
-        // LASER: paddle_laser_1.png...16.png
-        for (int i = 1; i <= 16; i++) {
-            loadImage("paddle_laser_" + i + ".png");
-        }
-        
-        // PULSATE: paddle_pulsate_1.png...4.png
-        for (int i = 1; i <= 4; i++) {
-            loadImage("paddle_pulsate_" + i + ".png");
-        }
-        
-        // MATERIALIZE: paddle_materialize_1.png...15.png
-        for (int i = 1; i <= 15; i++) {
-            loadImage("paddle_materialize_" + i + ".png");
-        }
-        
-        // EXPLODE: paddle_explode_1.png...8.png
-        for (int i = 1; i <= 8; i++) {
-            loadImage("paddle_explode_" + i + ".png");
-        }
-    }
-    
-    /**
-     * Load laser sprites.
-     */
-    private void loadLaserSprites() {
-        loadImage("laser_bullet.png");
-    }
-    
-    /**
-     * Load UI sprites (optional, không critical).
-     */
-    private void loadUISprites() {
-        // TODO: Load menu, HUD, button sprites nếu có
-        // Không throw exception nếu missing
-    }
-    
-    /**
-     * Load một image và cache lại.
-     * 
-     * Workflow: SpriteCache gọi → AssetLoader.loadImage() → trả về Image → cache
-     * 
-     * @param filename tên file (relative to GRAPHICS_PATH)
-     */
-    private void loadImage(String filename) {
-        if (cache.containsKey(filename)) {
-            return; // Đã có trong cache
-        }
-        
-        // GỌI AssetLoader để load image từ disk
-        Image image = AssetLoader.loadImage(filename);
-        
-        // Cache lại kết quả (kể cả placeholder nếu load failed)
-        cache.put(filename, image);
-    }
-    
-    /**
-     * Tạo placeholder image 1x1 pixel.
-     * Deprecated - sử dụng AssetLoader.createPlaceholderImage() thay thế
-     */
-    @Deprecated
-    private Image createPlaceholder() {
-        return new javafx.scene.image.WritableImage(1, 1);
-    }
-    
-    /**
-     * Lấy image theo filename.
-     * 
-     * @param filename tên file (ví dụ: "paddle.png")
-     * @return Image hoặc placeholder nếu không tìm thấy
-     */
-    public Image get(String filename) {
-        if (!initialized) {
-            System.err.println("SpriteCache: Warning - Not initialized! Call initialize() first.");
-            initialize();
-        }
-        
-        Image img = cache.get(filename);
-        if (img == null) {
-            System.err.println("SpriteCache: Image not found in cache: " + filename);
-            // Try load on demand
-            loadImage(filename);
-            img = cache.get(filename);
-        }
-        return img;
-    }
-    
-    /**
-     * Lấy sprite cho brick type.
-     * 
-     * @param type loại brick
-     * @return Image của brick
-     */
-    public static Image getBrickSprite(BrickType type) {
-        return getInstance().get(type.getSpriteName());
-    }
-    
-    /**
-     * Lấy tất cả frames cho powerup animation.
-     * 
-     * @param type loại powerup
-     * @return List các Image frames (8 frames)
-     */
-    public static List<Image> getPowerUpFrames(PowerUpType type) {
-        List<Image> frames = new ArrayList<>();
-        String prefix = type.getSpritePrefix();
-        
-        for (int i = 1; i <= 8; i++) {
-            String filename = prefix + "_" + i + ".png";
-            frames.add(getInstance().get(filename));
-        }
-        
-        return frames;
-    }
-    
-    /**
-     * Lấy tất cả frames cho paddle animation.
-     * 
-     * @param state trạng thái paddle
-     * @return List các Image frames
-     */
-    public static List<Image> getPaddleFrames(PaddleState state) {
-        List<Image> frames = new ArrayList<>();
-        SpriteCache cache = getInstance();
-        
-        switch (state) {
-            case NORMAL:
-                frames.add(cache.get("paddle.png"));
-                break;
-                
-            case WIDE:
-                for (int i = 1; i <= 9; i++) {
-                    frames.add(cache.get("paddle_wide_" + i + ".png"));
-                }
-                break;
-                
-            case LASER:
-                for (int i = 1; i <= 16; i++) {
-                    frames.add(cache.get("paddle_laser_" + i + ".png"));
-                }
-                break;
-                
-            case PULSATE:
-                for (int i = 1; i <= 4; i++) {
-                    frames.add(cache.get("paddle_pulsate_" + i + ".png"));
-                }
-                break;
-                
-            case MATERIALIZE:
-                for (int i = 1; i <= 15; i++) {
-                    frames.add(cache.get("paddle_materialize_" + i + ".png"));
-                }
-                break;
-                
-            case EXPLODE:
-                for (int i = 1; i <= 8; i++) {
-                    frames.add(cache.get("paddle_explode_" + i + ".png"));
-                }
-                break;
-        }
-        
-        return frames;
-    }
-    
-    /**
-     * Lấy crack animation frames cho silver brick.
-     * 
-     * @return List 10 frames
-     */
-    public static List<Image> getSilverBrickCrackFrames() {
-        List<Image> frames = new ArrayList<>();
-        for (int i = 1; i <= 10; i++) {
-            frames.add(getInstance().get("brick_silver_" + i + ".png"));
-        }
-        return frames;
-    }
-    
-    /**
-     * Clear cache (dùng để testing hoặc reload assets).
+     * Xóa toàn bộ cache — thường dùng khi reset hoặc thoát game.
      */
     public void clear() {
         cache.clear();
+        silverCrackCache.clear();
+        powerUpCatchCache.clear();
+        powerUpExpandCache.clear();
+        powerUpLaserCache.clear();
+        powerUpDuplicateCache.clear();
+        powerUpSlowCache.clear();
+        powerUPLifeCache.clear();
+        powerUpWarpCache.clear();
+        paddleWideCache.clear();
+        paddleWidePulsateCache.clear();
+        paddleLaserCache.clear();
+        paddleLaserPulsateCache.clear();
+        paddlePulsateCache.clear();
+        paddleMaterializeCache.clear();
+        paddleExplodeCache.clear();
+        totalSprites = 0;
         initialized = false;
-        System.out.println("SpriteCache: Cache cleared");
+        System.out.println("SpriteCache: Cleared all cached sprites.");
     }
-    
+
     /**
-     * Lấy thông tin về cache.
+     * In thông tin trạng thái của cache ra console.
      */
-    public void printStats() {
-        System.out.println("=== SpriteCache Stats ===");
+    public void printCacheStatus() {
+        System.out.println("=== SpriteCache Status ===");
         System.out.println("Initialized: " + initialized);
-        System.out.println("Cached images: " + cache.size());
-        System.out.println("Memory usage (approx): " + estimateMemoryUsage() + " MB");
+        System.out.println("Cached images: " + totalSprites);
+//        System.out.println("Memory usage (approx): " + estimateMemoryUsage() + " MB");
     }
-    
+
     /**
-     * Ước lượng memory usage (rough estimate).
+     * Tải toàn bộ sprite cho gạch (Brick).
      */
-    private double estimateMemoryUsage() {
-        long totalPixels = 0;
-        for (Image img : cache.values()) {
-            totalPixels += (long)(img.getWidth() * img.getHeight());
+    private void loadBrickSprites() {
+        // Load các loại gạch thông thường
+        for (BrickType type : BrickType.values()) {
+            String filename = type.getSpriteName() + ".png";
+            Image img = AssetLoader.loadImage(filename);
+            cache.put(filename, img); // Lưu vào cache chính
         }
-        // Giả sử 4 bytes per pixel (RGBA)
-        return (totalPixels * 4) / (1024.0 * 1024.0);
+
+        // Load các frame nứt (crack) cho gạch bạc (Silver brick)
+        for (int i = 1; i <= 10; i++) {
+            String filename = BrickType.SILVER.getSpriteName() + "_" + i + ".png";
+            Image img = AssetLoader.loadImage(filename);
+            silverCrackCache.add(img);
+        }
     }
+
+    /**
+     * Tải sprite cho tất cả các loại PowerUp.
+     */
+    private void loadPowerUpSprites() {
+        for (PowerUpType type : PowerUpType.values()) {
+            // Xác định cache tương ứng cho từng loại power-up
+            List<Image> targetCache = switch (type) {
+                case CATCH -> powerUpCatchCache;
+                case EXPAND -> powerUpExpandCache;
+                case LASER -> powerUpLaserCache;
+                case DUPLICATE -> powerUpDuplicateCache;
+                case SLOW -> powerUpSlowCache;
+                case LIFE -> powerUPLifeCache;
+                case WARP -> powerUpWarpCache;
+            };
+
+            // Mỗi power-up có 8 frame animation
+            for (int i = 1; i <= 8; i++) {
+                String filename = type.getFramePath(i);
+                Image img = AssetLoader.loadImage(filename);
+                targetCache.add(img);
+            }
+        }
+    }
+
+    /**
+     * Tải các sprite cho paddle (thanh đỡ) ở nhiều trạng thái khác nhau.
+     */
+    private void loadPaddleSprites() {
+        // Load các ảnh tĩnh cơ bản của paddle
+        String paddlePath = PaddleState.NORMAL.getPaddlePrefix() + ".png";
+        Image paddleImg = AssetLoader.loadImage(paddlePath);
+        cache.put(paddlePath, paddleImg);
+
+        String laserPath = PaddleState.LASER.getPaddlePrefix() + ".png";
+        Image laserImg = AssetLoader.loadImage(laserPath);
+        cache.put(laserPath, laserImg);
+
+        String lifePath = PaddleState.NORMAL.getPaddlePrefix() + "_life" + ".png";
+        Image lifeImg = AssetLoader.loadImage(lifePath);
+        cache.put(lifePath, lifeImg);
+
+        String widePath = PaddleState.NORMAL.getPaddlePrefix() + "_wide" + ".png";
+        Image wideImg = AssetLoader.loadImage(widePath);
+        cache.put(widePath, wideImg);
+
+        // Load các trạng thái animation của paddle
+        for (PaddleState state : PaddleState.values()) {
+            if (state == PaddleState.NORMAL) {
+                continue; // NORMAL sử dụng ảnh tĩnh, đã load ở trên
+            }
+
+            // Lựa chọn cache tương ứng cho mỗi trạng thái
+            List<Image> targetCache = switch (state) {
+                case NORMAL -> throw new IllegalStateException("NORMAL state should use static image.");
+                case WIDE -> paddleWideCache;
+                case WIDE_PULSATE -> paddleWidePulsateCache;
+                case LASER -> paddleLaserCache;
+                case LASER_PULSATE -> paddleLaserPulsateCache;
+                case PULSATE -> paddlePulsateCache;
+                case MATERIALIZE -> paddleMaterializeCache;
+                case EXPLODE -> paddleExplodeCache;
+            };
+
+            // Load từng frame của animation
+            for (int i = 1; i <= state.getFrameCount(); i++) {
+                String filename = state.getPaddlePrefix() + "_" + i + ".png";
+                Image img = AssetLoader.loadImage(filename);
+                targetCache.add(img);
+            }
+        }
+    }
+
+    /** Tải sprite quả bóng. */
+    private void loadBallSprite() {
+        String filename = "ball.png";
+        Image img = AssetLoader.loadImage(filename);
+        cache.put(filename, img);
+    }
+
+    /** Tải sprite của tia laser. */
+    private void loadLaserSprites() {
+        String filename = "laser_bullet.png";
+        Image img = AssetLoader.loadImage(filename);
+        cache.put(filename, img);
+    }
+
+    /** Tải sprite cho ba cạnh của màn chơi (top, right, left). */
+    private void loadEdgeSprites() {
+        String topEdge = "edge_top.png";
+        String rightEdge = "edge_right.png";
+        String leftEdge = "edge_left.png";
+
+        Image topImg = AssetLoader.loadImage(topEdge);
+        Image rightImg = AssetLoader.loadImage(rightEdge);
+        Image leftImg = AssetLoader.loadImage(leftEdge);
+
+        cache.put(topEdge, topImg);
+        cache.put(rightEdge, rightImg);
+        cache.put(leftEdge, leftImg);
+    }
+
+    /** Tải sprite logo game. */
+    private void loadLogoSprite() {
+        String filename = "logo.png";
+        Image img = AssetLoader.loadImage(filename);
+        cache.put(filename, img);
+    }
+
+    /** Trả về ảnh tĩnh tương ứng với tên file. */
+    public Image getImage(String filename) {
+        return cache.get(filename);
+    }
+
+    // Các getter để lấy danh sách sprite tương ứng
+    public Map<String, Image> getCache() { return cache; }
+    public List<Image> getSilverCrackCache() { return silverCrackCache; }
+    public List<Image> getPowerUpCatchCache() { return powerUpCatchCache; }
+    public List<Image> getPowerUpExpandCache() { return powerUpExpandCache; }
+    public List<Image> getPowerUpLaserCache() { return powerUpLaserCache; }
+    public List<Image> getPowerUpDuplicateCache() { return powerUpDuplicateCache; }
+    public List<Image> getPowerUpSlowCache() { return powerUpSlowCache; }
+    public List<Image> getPowerUPLifeCache() { return powerUPLifeCache; }
+    public List<Image> getPowerUpWarpCache() { return powerUpWarpCache; }
+    public List<Image> getPaddleWideCache() { return paddleWideCache; }
+    public List<Image> getPaddleWidePulsateCache() { return paddleWidePulsateCache; }
+    public List<Image> getPaddleLaserCache() { return paddleLaserCache; }
+    public List<Image> getPaddleLaserPulsateCache() { return paddleLaserPulsateCache; }
+    public List<Image> getPaddlePulsateCache() { return paddlePulsateCache; }
+    public List<Image> getPaddleMaterializeCache() { return paddleMaterializeCache; }
+    public List<Image> getPaddleExplodeCache() { return paddleExplodeCache; }
+    public boolean isInitialized() { return initialized; }
+    public int getTotalSprites() { return totalSprites; }
 }

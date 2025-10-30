@@ -1,51 +1,49 @@
 package Engine;
 
 /**
- * Enum định nghĩa các trạng thái của game.
- * 
- * State machine flow:
+ * Enum định nghĩa các **trạng thái** khác nhau của trò chơi.
+ *
+ * Sơ đồ luồng trạng thái (State machine flow):
  * MENU → PLAYING ↔ PAUSED
- * PLAYING → LEVEL_COMPLETE → PLAYING (next level)
- * PLAYING → GAME_OVER (no lives left)
- * PLAYING → WIN (all levels completed)
- * GAME_OVER/WIN → MENU (restart)
- * 
- * @author SteveHoang aka BoizSocSon
+ * PLAYING → LEVEL_COMPLETE → PLAYING (màn tiếp theo)
+ * PLAYING → GAME_OVER (hết mạng)
+ * PLAYING → WIN (hoàn thành tất cả các màn)
+ * GAME_OVER/WIN → MENU (khởi động lại).
  */
 public enum GameState {
     /**
-     * Main menu - game not started yet.
-     * Show title, high scores, options.
+     * **Menu chính** - Trò chơi chưa bắt đầu.
+     * Hiển thị tiêu đề, điểm cao, tùy chọn.
      */
     MENU,
-    
+
     /**
-     * Game is actively being played.
-     * Ball moving, bricks being destroyed, etc.
+     * **Đang chơi** - Trò chơi đang hoạt động.
+     * Bóng di chuyển, gạch bị phá hủy, v.v.
      */
     PLAYING,
-    
+
     /**
-     * Game is paused (ESC pressed).
-     * All game objects frozen, show pause menu.
+     * **Tạm dừng** - Trò chơi đã được tạm dừng (ví dụ: nhấn ESC).
+     * Tất cả các đối tượng trò chơi bị đóng băng, hiển thị menu tạm dừng.
      */
     PAUSED,
-    
+
     /**
-     * Level completed successfully.
-     * Show transition screen, prepare next level.
+     * **Hoàn thành màn chơi** - Màn chơi hiện tại đã hoàn thành thành công.
+     * Hiển thị màn hình chuyển tiếp, chuẩn bị cho màn chơi tiếp theo.
      */
     LEVEL_COMPLETE,
-    
+
     /**
-     * Game over - no lives remaining.
-     * Show final score, high score entry.
+     * **Kết thúc trò chơi (Thua)** - Không còn mạng sống.
+     * Hiển thị điểm số cuối cùng, màn hình nhập điểm cao.
      */
     GAME_OVER,
-    
+
     /**
-     * All levels completed - player wins!
-     * Show victory screen, final score.
+     * **Thắng cuộc** - Tất cả các màn chơi đã được hoàn thành.
+     * Hiển thị màn hình chiến thắng, điểm số cuối cùng.
      */
     WIN
 }

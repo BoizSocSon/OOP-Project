@@ -1,180 +1,153 @@
 package Engine;
 
-import Rounds.RoundBase;
-import Rounds.Round1;
-import Rounds.Round2;
-import Rounds.Round3;
+import Objects.Bricks.BrickType;
+import Rounds.*;
 import Objects.Bricks.Brick;
-import Audio.MusicTrack;
+//import Audio.MusicTrack;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * RoundsManager - Manages round progression and round-related logic.
- * 
- * Responsibilities:
- * - Load rounds in sequence
- * - Track current round
- * - Check round completion
- * - Trigger round transitions
- * - Provide round info for HUD
- * 
- * @author SteveHoang aka BoizSocSon
+ * Lớp RoundsManager chịu trách nhiệm quản lý trình tự, tải và kiểm tra
+ * trạng thái hoàn thành của các vòng chơi (level) trong game.
  */
 public class RoundsManager {
+    /** Danh sách tất cả các vòng chơi (RoundBase) có trong game. */
     private final List<RoundBase> rounds;
+    /** Chỉ mục (index) của vòng chơi hiện tại trong danh sách 'rounds' (bắt đầu từ 0). */
     private int currentRoundIndex;
+    /** Đối tượng vòng chơi hiện tại đang được tải và chơi. */
     private RoundBase currentRound;
+    /** Danh sách các viên gạch (Brick) của vòng chơi hiện tại. */
     private List<Brick> currentBricks;
-    private final int playAreaWidth;
-    private final int playAreaHeight;
-    
+
     /**
-     * Creates a new RoundsManager.
-     * @param playAreaWidth Width of play area
-     * @param playAreaHeight Height of play area
+     * Khởi tạo RoundsManager.
+     * Thiết lập danh sách vòng chơi và tải cấu hình các vòng có sẵn.
      */
-    public RoundsManager(int playAreaWidth, int playAreaHeight) {
-        this.playAreaWidth = playAreaWidth;
-        this.playAreaHeight = playAreaHeight;
+    public RoundsManager() {
         this.rounds = new ArrayList<>();
         this.currentRoundIndex = 0;
         this.currentBricks = new ArrayList<>();
-        
+
         initializeRounds();
     }
-    
+
     /**
-     * Initializes all rounds in the game.
+     * Khởi tạo và thêm tất cả các đối tượng vòng chơi (Round) vào danh sách.
      */
     private void initializeRounds() {
-        rounds.add(new Round1(playAreaWidth, playAreaHeight));
-        rounds.add(new Round2(playAreaWidth, playAreaHeight));
-        rounds.add(new Round3(playAreaWidth, playAreaHeight));
+        rounds.add(new Round1());
+        rounds.add(new Round2());
+        rounds.add(new Round3());
+        rounds.add(new Round4());
+        // Thêm các Round khác tại đây khi cần
     }
-    
+
     /**
-     * Loads a specific round by number (0-indexed).
-     * Clears current bricks and creates new ones from round definition.
-     * 
-     * @param roundNumber Round index to load (0 = Round1, 1 = Round2, etc.)
-     * @return List of bricks for this round
+     * Tải một vòng chơi cụ thể dựa trên chỉ mục (index) của nó.
+     * @param roundNumber Chỉ mục của vòng chơi cần tải (0-based index).
+     * @return Danh sách các viên gạch (Brick) của vòng chơi vừa tải.
+     * @throws IllegalArgumentException nếu chỉ mục vòng chơi không hợp lệ.
      */
     public List<Brick> loadRound(int roundNumber) {
         if (roundNumber < 0 || roundNumber >= rounds.size()) {
-            System.err.printf("RoundsManager: Invalid round number %d%n", roundNumber);
-            return currentBricks;
+            throw new IllegalArgumentException("Invalid round number: " + roundNumber);
         }
-        
-        System.out.printf("RoundsManager: Loading Round %d%n", roundNumber + 1);
-        
-        currentRoundIndex = roundNumber;
-        currentRound = rounds.get(roundNumber);
-        
-        // Clear old bricks
-        currentBricks.clear();
-        
-        // Create new bricks from round definition
-        currentBricks = currentRound.createBricks();
-        
-        System.out.printf("RoundsManager: Round %d loaded with %d bricks%n", 
-            roundNumber + 1, currentBricks.size());
-        
-        // Music change should be handled by StateManager/AudioManager
-        // AudioManager.playMusic(currentRound.getMusicTrack());
-        
+
+        currentRoundIndex = roundNumber; // Cập nhật chỉ mục hiện tại
+        currentRound = rounds.get(currentRoundIndex); // Lấy đối tượng Round
+        currentBricks.clear(); // Xóa gạch cũ
+        currentBricks = currentRound.createBricks(); // Tạo gạch mới
+
         return currentBricks;
     }
-    
+
     /**
-     * Loads the first round (Round 1).
-     * @return List of bricks for Round 1
+     * Tải vòng chơi đầu tiên (Round 0).
+     * @return Danh sách các viên gạch của vòng 1.
      */
     public List<Brick> loadFirstRound() {
         return loadRound(0);
     }
-    
+
     /**
-     * Checks if current round is complete (all bricks destroyed).
-     * @return true if no bricks are alive
+     * Kiểm tra xem vòng chơi hiện tại đã hoàn thành hay chưa.
+     * Vòng chơi hoàn thành khi tất cả các viên gạch *không phải* **GOLD** đã bị phá hủy.
+     * @return true nếu tất cả gạch ngoài gạch GOLD đã bị phá hủy, ngược lại là false.
      */
     public boolean isRoundComplete() {
+        // Nếu danh sách gạch rỗng (có thể do lỗi tải), coi như chưa hoàn thành
         if (currentBricks.isEmpty()) {
-            return false; // No round loaded yet
+            return false;
         }
-        
-        // Check if any brick is still alive
+
+        // Lặp qua tất cả gạch trong màn chơi hiện tại
         for (Brick brick : currentBricks) {
-            if (brick.isAlive()) {
-                return false;
+            // Nếu tìm thấy một viên gạch còn sống VÀ không phải là gạch GOLD
+            if (brick.isAlive() && !(brick.getBrickType() == BrickType.GOLD)) {
+                return false; // Vòng chơi chưa hoàn thành
             }
         }
-        
-        return true;
+        return true; // Tất cả gạch không phải GOLD đã bị phá hủy
     }
-    
+
     /**
-     * Advances to the next round.
-     * If no more rounds, returns false (game won).
-     * 
-     * @return true if next round loaded, false if no more rounds
+     * Chuyển sang vòng chơi tiếp theo.
+     * Phương thức này giả định rằng `hasNextRound()` đã được kiểm tra trước đó.
+     * @return true nếu vòng chơi tiếp theo được tải thành công.
+     * @throws IllegalStateException nếu không còn vòng chơi nào để tải.
      */
     public boolean nextRound() {
-        int nextIndex = currentRoundIndex + 1;
-        
-        if (nextIndex >= rounds.size()) {
-            System.out.println("RoundsManager: No more rounds - game won!");
-            return false; // No more rounds - player wins
+        int nextRoundIndex = currentRoundIndex + 1;
+        if (nextRoundIndex >= rounds.size()) {
+            // Ném ngoại lệ vì logic chuyển vòng cần được gọi sau khi kiểm tra hasNextRound()
+            throw new IllegalStateException("No more rounds available.");
         }
-        
-        loadRound(nextIndex);
+
+        loadRound(nextRoundIndex); // Tải vòng tiếp theo
         return true;
     }
-    
+
     /**
-     * Checks if there are more rounds after current one.
-     * @return true if more rounds exist
+     * Kiểm tra xem còn vòng chơi nào tiếp theo không.
+     * @return true nếu chỉ mục của vòng tiếp theo nhỏ hơn tổng số vòng, ngược lại là false.
      */
     public boolean hasNextRound() {
         return currentRoundIndex + 1 < rounds.size();
     }
-    
+
     /**
-     * Gets current round number (1-indexed for display).
-     * @return Current round number (1, 2, 3, etc.)
+     * Lấy số thứ tự vòng chơi hiện tại (1-based, ví dụ: Vòng 1, Vòng 2, v.v.).
+     * @return Số thứ tự vòng chơi hiện tại.
      */
     public int getCurrentRoundNumber() {
         return currentRoundIndex + 1;
     }
-    
+
     /**
-     * Gets current round object.
-     * @return Current RoundBase instance
+     * Lấy tên của vòng chơi hiện tại (ví dụ: "The Beginning").
+     * @return Tên vòng chơi hoặc "Unknown" nếu chưa có vòng nào được tải.
      */
-    public RoundBase getCurrentRound() {
-        return currentRound;
+    public String getCurrentRoundName() {
+        if (currentRound == null) {
+            return "Unknown";
+        }
+        return currentRound.getRoundName();
     }
-    
+
     /**
-     * Gets current bricks list.
-     * @return List of bricks in current round
+     * Lấy danh sách các viên gạch của vòng chơi hiện tại.
+     * @return Danh sách các đối tượng Brick.
      */
     public List<Brick> getCurrentBricks() {
         return currentBricks;
     }
-    
+
     /**
-     * Gets total number of rounds in game.
-     * @return Total round count
-     */
-    public int getTotalRounds() {
-        return rounds.size();
-    }
-    
-    /**
-     * Gets number of remaining bricks in current round.
-     * @return Count of alive bricks
+     * Đếm số lượng viên gạch còn sống (chưa bị phá hủy hoàn toàn) trong vòng chơi hiện tại.
+     * @return Số lượng gạch còn lại.
      */
     public int getRemainingBrickCount() {
         int count = 0;
@@ -185,41 +158,31 @@ public class RoundsManager {
         }
         return count;
     }
-    
+
     /**
-     * Gets music track for current round.
-     * @return MusicTrack enum value
-     */
-    public MusicTrack getCurrentMusicTrack() {
-        if (currentRound == null) {
-            return MusicTrack.MENU;
-        }
-        return currentRound.getMusicTrack();
-    }
-    
-    /**
-     * Resets rounds manager to initial state (Round 1).
+     * Đặt lại RoundsManager về trạng thái ban đầu (Vòng 1).
      */
     public void reset() {
         currentRoundIndex = 0;
         currentBricks.clear();
         loadFirstRound();
     }
-    
+
     /**
-     * Gets round info for HUD display.
-     * @return Formatted string with round info
+     * Lấy thông tin chi tiết về vòng chơi hiện tại dưới dạng chuỗi.
+     * @return Chuỗi chứa số vòng, tên vòng và số lượng gạch còn lại/tổng số.
      */
     public String getRoundInfo() {
         if (currentRound == null) {
             return "No Round Loaded";
         }
-        
-        return String.format("Round %d: %s (%d/%d bricks)", 
-            getCurrentRoundNumber(),
-            currentRound.getRoundName(),
-            getRemainingBrickCount(),
-            currentBricks.size()
+
+        // Định dạng chuỗi: "Round [Số Vòng]: [Tên Vòng] ([Gạch còn lại]/[Tổng số gạch])"
+        return String.format("Round %d: %s (%d/%d bricks)",
+                getCurrentRoundNumber(),
+                currentRound.getRoundName(),
+                getRemainingBrickCount(),
+                currentBricks.size()
         );
     }
 }

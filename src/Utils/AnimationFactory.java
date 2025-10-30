@@ -2,193 +2,125 @@ package Utils;
 
 import Render.Animation;
 import javafx.scene.image.Image;
-import javafx.scene.image.WritableImage;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
-
 import Objects.PowerUps.PowerUpType;
 import Objects.GameEntities.PaddleState;
 
 /**
- * FACTORY LAYER - Factory tạo Animation từ các sprite sequence.
+ * Lớp tiện ích (factory) chịu trách nhiệm tạo ra các đối tượng {@link Animation}
+ * cho các thành phần trong game như gạch, power-up và thanh đỡ (paddle).
  *
- * Kiến trúc:
- * AssetLoader (load từ disk) → SpriteCache (cache sprites) → **AnimationFactory** (tạo animations)
+ * <p>Đây là một lớp dạng singleton không cho phép khởi tạo trực tiếp.
+ * Mọi phương thức đều là static, giúp quản lý và tái sử dụng hiệu quả các animation.</p>
  *
- * Factory này sử dụng:
- * - SpriteCache để lấy cached sprites (không load trực tiếp từ disk)
- * - Constants.Animation để định nghĩa frame duration
- * 
- * Workflow:
- * AnimationFactory.createXXX() → SpriteCache.get() → (nếu chưa có) → AssetLoader.loadImage()
- *
- * @author SteveHoang aka BoizSocSon
+ * <p>Cần gọi {@link #initialize(SpriteProvider)} để cung cấp nguồn sprite
+ * trước khi gọi các hàm tạo animation.</p>
  */
 public final class AnimationFactory {
 
+    /**
+     * Constructor private để tránh việc tạo đối tượng ngoài ý muốn.
+     * Chỉ được sử dụng thông qua các phương thức static.
+     */
     private AnimationFactory() {
-        throw new UnsupportedOperationException("Utility class - cannot instantiate");
     }
 
     /**
-     * Tạo animation cho gạch bạc bị nứt (crack effect).
+     * Đối tượng SpriteProvider dùng để truy xuất ảnh động (sprite frames) từ bộ tài nguyên game.
+     * Biến này được chia sẻ toàn cục trong lớp.
+     */
+    private static SpriteProvider sprites;
+
+    /**
+     * Khởi tạo SpriteProvider cho factory.
      *
-     * Spec:
-     * - Frames: brick_silver_1.png đến brick_silver_10.png
-     * - Duration: 50ms/frame (Constants.Animation.CRACK_ANIMATION_DURATION)
-     * - Loop: false (chạy 1 lần)
+     * Phải gọi hàm này trong giai đoạn khởi động (init) của game để đảm bảo
+     * các phương thức tạo animation có thể truy cập được dữ liệu ảnh.
      *
-     * @return Animation object cho brick crack effect
+     * @param spriteProvider đối tượng cung cấp ảnh động (sprite frames) cho game
+     */
+    public static void initialize(SpriteProvider spriteProvider) {
+        sprites = spriteProvider;
+    }
+
+    /**
+     * Đảm bảo SpriteProvider đã được khởi tạo trước khi sử dụng.
+     * Nếu chưa, ném ra ngoại lệ để tránh lỗi NullPointerException.
+     *
+     * @return đối tượng SpriteProvider hiện tại
+     * @throws IllegalStateException nếu chưa được gọi initialize()
+     */
+    private static SpriteProvider requireProvider() {
+        if (sprites == null) {
+            throw new IllegalStateException(
+                    "AnimationFactory: SpriteProvider not set. Call AnimationFactory.initialize(...) during init.");
+        }
+        return sprites;
+    }
+
+    /**
+     * Tạo animation cho hiệu ứng gạch bạc bị nứt (silver brick crack).
+     *
+     * Animation này thường được kích hoạt khi viên gạch bị va chạm.
+     *
+     * @return animation chỉ chạy một lần (không lặp)
      */
     public static Animation createBrickCrackAnimation() {
-        List<Image> frames = loadSequence("brick_silver_%d.png", 1, 10);
-        // Sử dụng CRACK_ANIMATION_DURATION từ Constants
+        // Lấy danh sách khung hình (frames) cho hiệu ứng nứt gạch từ SpriteProvider
+        List<Image> frames = requireProvider().getSilverCrackFrames();
+
+        // Tạo animation với thời lượng được định nghĩa trong Constants, không lặp lại
         return new Animation(frames, Constants.Animation.CRACK_ANIMATION_DURATION, false);
     }
 
     /**
-     * Tạo animation cho power-up dựa trên loại power-up.
+     * Tạo animation cho vật phẩm (power-up) rơi xuống.
      *
-     * Spec:
-     * - Frames: powerup_{type}_1.png đến powerup_{type}_8.png
-     * - Duration: 100ms/frame (Constants.Animation.POWERUP_ANIMATION_DURATION)
-     * - Loop: true (animation liên tục khi rơi)
+     * Mỗi loại power-up có tập khung hình riêng biệt.
      *
-     * @param type loại power-up (CATCH, EXPAND, LASER, v.v.)
-     * @return Animation object cho power-up
+     * @param type loại power-up (ví dụ: mở rộng paddle, làm chậm bóng, v.v.)
+     * @return animation lặp vô hạn cho đến khi vật phẩm bị thu thập
      */
     public static Animation createPowerUpAnimation(PowerUpType type) {
-        // Sử dụng spritePrefix từ PowerUpType để build tên file
-        String pattern = type.getSpritePrefix() + "_%d.png";
-        List<Image> frames = loadSequence(pattern, 1, 8);
-        // Sử dụng POWERUP_ANIMATION_DURATION từ Constants
+        // Lấy các khung hình (frames) tương ứng với loại power-up truyền vào
+        List<Image> frames = requireProvider().getPowerUpFrames(type);
+
+        // Power-up thường hiển thị liên tục trên màn hình nên cần animation lặp (loop = true)
         return new Animation(frames, Constants.Animation.POWERUP_ANIMATION_DURATION, true);
     }
 
     /**
-     * Tạo animation cho paddle dựa trên trạng thái.
+     * Tạo animation cho các trạng thái đặc biệt của paddle (ví dụ: MATERIALIZE, EXPLODE).
      *
-     * Spec từ requirements:
-     * - NORMAL: paddle.png (static)
-     * - WIDE: paddle_wide_1.png...9.png (60ms/frame, loop)
-     * - LASER: paddle_laser_1.png...16.png (40ms/frame, loop)
-     * - PULSATE: paddle_pulsate_1.png...4.png (80ms/frame, loop)
-     * - MATERIALIZE: paddle_materialize_1.png...15.png (45ms/frame, once)
-     * - EXPLODE: paddle_explode_1.png...8.png (50ms/frame, once)
+     * Các animation này chỉ xuất hiện khi paddle thay đổi trạng thái, ví dụ khi xuất hiện hoặc phát nổ.
      *
-     * @param state trạng thái paddle
-     * @return Animation object tương ứng
+     * @param state trạng thái hiện tại của paddle
+     * @return animation tương ứng với trạng thái đó
+     * @throws IllegalArgumentException nếu state là NORMAL (vì trạng thái này không có animation)
      */
     public static Animation createPaddleAnimation(PaddleState state) {
-        switch (state) {
-            case NORMAL: {
-                // Static sprite - single frame, long duration, loop true
-                List<Image> single = new ArrayList<>();
-                single.add(loadSingle("paddle.png"));
-                return new Animation(single, 1000L, true);
-            }
-            case WIDE: {
-                // 9 frames, 60ms each, loop
-                List<Image> frames = loadSequence("paddle_wide_%d.png", 1, 9);
-                return new Animation(frames, 60L, true);
-            }
-            case LASER: {
-                // 16 frames, 40ms each, loop
-                List<Image> frames = loadSequence("paddle_laser_%d.png", 1, 16);
-                return new Animation(frames, 40L, true);
-            }
-            case PULSATE: {
-                // 4 frames, 80ms each, loop
-                List<Image> frames = loadSequence("paddle_pulsate_%d.png", 1, 4);
-                return new Animation(frames, 80L, true);
-            }
-            case MATERIALIZE: {
-                // 15 frames, 45ms each, once
-                List<Image> frames = loadSequence("paddle_materialize_%d.png", 1, 15);
-                return new Animation(frames, 45L, false);
-            }
-            case EXPLODE: {
-                // 8 frames, 50ms each, once
-                List<Image> frames = loadSequence("paddle_explode_%d.png", 1, 8);
-                return new Animation(frames, 50L, false);
-            }
-            default: {
-                // Fallback to normal
-                List<Image> single = new ArrayList<>();
-                single.add(loadSingle("paddle.png"));
-                return new Animation(single, 1000L, true);
-            }
+        // Kiểm tra: nếu paddle ở trạng thái bình thường thì không có animation để hiển thị
+        if (state == PaddleState.NORMAL) {
+            throw new IllegalArgumentException("PaddleState.NORMAL does not have animation frames.");
         }
-    }
 
-    /**
-     * Tạo animation cho laser bullet.
-     *
-     * Spec:
-     * - Frame: laser_bullet.png (single frame)
-     * - Loop: true (để render liên tục)
-     * - Note: Có thể thêm glow effect trong tương lai
-     *
-     * @return Animation object cho laser bullet
-     */
-    public static Animation createLaserBulletAnimation() {
-        // Single-frame bullet; loop true để renderer vẽ liên tục
-        List<Image> frames = new ArrayList<>();
-        frames.add(loadSingle("laser_bullet.png"));
-        return new Animation(frames, 1000L, true);
-    }
+        // Lấy danh sách khung hình tương ứng với trạng thái paddle
+        List<Image> frames = requireProvider().getPaddleFrames(state);
 
-    // ==================== HELPER METHODS ====================
-    // Các phương thức phụ trợ để lấy sprites từ SpriteCache (không load trực tiếp).
+        // Fallback: if frames list is empty (missing assets or not initialized),
+        // try to load a single static image as a placeholder so the Animation
+        // constructor doesn't throw. This makes the app more robust to init order
+        // or missing files.
+        //
+        // (Nếu danh sách khung hình bị thiếu, có thể nạp ảnh tĩnh thay thế để tránh lỗi runtime)
+        // if (frames == null || frames.isEmpty()) {
+        //     Image fallback = requireProvider().get(state.getPaddlePrefix() + ".png");
+        //     frames = java.util.List.of(fallback);
+        // }
 
-    /**
-     * Load một sequence sprites theo pattern với số thứ tự.
-     * 
-     * Workflow: AnimationFactory → SpriteCache.getInstance().get() → (cache miss) → AssetLoader
-     *
-     * @param patternWithPercentD pattern chứa %d (ví dụ: "brick_%d.png")
-     * @param from số thứ tự bắt đầu (inclusive)
-     * @param to số thứ tự kết thúc (inclusive)
-     * @return danh sách Image objects
-     */
-    private static List<Image> loadSequence(String patternWithPercentD, int from, int to) {
-        List<Image> frames = new ArrayList<>();
-        SpriteCache cache = SpriteCache.getInstance();
-        
-        for (int i = from; i <= to; i++) {
-            String filename = String.format(patternWithPercentD, i);
-            // Lấy từ cache (SpriteCache sẽ gọi AssetLoader nếu chưa có)
-            frames.add(cache.get(filename));
-        }
-        return frames;
-    }
-
-    /**
-     * Load một sprite đơn từ SpriteCache.
-     *
-     * Workflow: AnimationFactory → SpriteCache.get() → (nếu chưa có) → AssetLoader.loadImage()
-     *
-     * @param filename tên file sprite (ví dụ: "paddle.png")
-     * @return Image object (có thể là placeholder nếu load failed)
-     */
-    private static Image loadSingle(String filename) {
-        // Lấy từ SpriteCache thay vì load trực tiếp
-        return SpriteCache.getInstance().get(filename);
-    }
-
-    /**
-     * Tạo placeholder image (1x1 transparent pixel) khi sprite không load được.
-     * 
-     * DEPRECATED: Sử dụng AssetLoader.createPlaceholderImage() thay thế.
-     * Method này giữ lại để backwards compatibility.
-     *
-     * @return WritableImage 1x1 pixel
-     */
-    @Deprecated
-    private static Image createPlaceholder() {
-        return new WritableImage(1, 1);
+        // Use the loop setting from PaddleState (MATERIALIZE and EXPLODE are one-shot)
+        // Sử dụng cờ lặp (loop) được định nghĩa sẵn trong state:
+        // MATERIALIZE hoặc EXPLODE là animation một lần, còn các loại khác có thể lặp.
+        return new Animation(frames, Constants.Animation.PADDLE_ANIMATION_DURATION, state.shouldLoop());
     }
 }
