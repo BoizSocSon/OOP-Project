@@ -3,60 +3,44 @@ package Utils;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.*;
 
 /**
- * Lớp tiện ích chịu trách nhiệm quản lý việc đọc/ghi dữ liệu ra file,
- * bao gồm highscore và các file cài đặt.
- * Mọi thao tác được thực hiện thread-safe thông qua LOCK.
+ * Quản lý I/O cho highscore và settings.
  */
 public final class FileManager {
 
-    // Tên thư mục ứng dụng nằm trong thư mục người dùng
     private static final String APP_DIR_NAME = ".arkanoid";
-    // Đường dẫn tuyệt đối đến thư mục ứng dụng
     private static final Path APP_DIR = Paths.get(System.getProperty("user.home"), APP_DIR_NAME);
-    // Đường dẫn file lưu điểm cao
     private static final Path HIGHSCORE_FILE = APP_DIR.resolve(Constants.Paths.HIGHSCORE_FILE);
+    private static final String AUDIO_SETTINGS_FILE = "audio_settings.dat";
 
-    // Đối tượng khóa dùng để đồng bộ truy cập file giữa các thread
     private static final Object LOCK = new Object();
 
-    // Chặn khởi tạo instance - chỉ dùng static method
     private FileManager() {
         throw new UnsupportedOperationException("Utility class");
     }
 
     /**
-     * Đọc điểm cao nhất từ file lưu trữ.
-     * Nếu file không tồn tại hoặc bị hỏng -> trả về 0.
-     *
+     * Tải highscore từ file. Nếu file không tồn tại hoặc corrupt trả về 0.
      * @return highscore (>=0)
      */
     public static int loadHighscore() {
-        synchronized (LOCK) { // Đảm bảo chỉ một thread đọc file tại một thời điểm
+        synchronized (LOCK) {
             try {
-                ensureAppDirExists(); // Tạo thư mục nếu chưa có
-
-                // Nếu file chưa tồn tại, trả về 0
+                ensureAppDirExists();
                 if (!Files.exists(HIGHSCORE_FILE)) {
                     return 0;
                 }
-
-                // Đọc toàn bộ nội dung file và loại bỏ khoảng trắng thừa
                 String s = Files.readString(HIGHSCORE_FILE).trim();
-
                 if (s.isEmpty()) {
                     return 0;
                 }
-
                 try {
                     int v = Integer.parseInt(s);
-                    // Đảm bảo giá trị không âm
                     return Math.max(0, v);
                 } catch (NumberFormatException ex) {
                     System.err.println("Filemanager: highscore corrupt - returning default. (" + ex.getMessage() + ")");
@@ -70,75 +54,58 @@ public final class FileManager {
     }
 
     /**
-     * Lưu điểm cao nhất xuống file.
-     * Quá trình ghi được thực hiện an toàn bằng cách ghi qua file tạm.
-     *
-     * @param score giá trị điểm cao nhất (>=0)
+     * Lưu highscore. Ghi an toàn qua file tạm để tránh corrupt.
+     * @param score giá trị highscore (>=0)
      */
     public static void saveHighscore(int score) {
-        synchronized (LOCK) { // Đảm bảo chỉ một thread ghi file tại một thời điểm
+        synchronized (LOCK) {
             try {
-                ensureAppDirExists(); // Đảm bảo thư mục tồn tại
-                String content = String.valueOf(Math.max(0, score)); // Không cho phép giá trị âm
-
-                // Ghi file an toàn
+                ensureAppDirExists();
+                String content = String.valueOf(Math.max(0, score));
                 writeFileAtomic(HIGHSCORE_FILE, content.getBytes());
             } catch (IOException ex) {
                 System.err.println("Filemanager: failed to save highscore - " + ex.getMessage());
-                // Hiển thị cảnh báo nếu lỗi ghi file
                 showWriteErrorDialog("Lưu điểm cao nhất thất bại:\n" + ex.getMessage());
             }
         }
     }
 
-    /**
-     * Đảm bảo thư mục ứng dụng tồn tại, nếu chưa thì tạo mới.
-     */
+    /** Tạo thư mục ứng dụng nếu chưa tồn tại */
     private static void ensureAppDirExists() throws IOException {
         if (!Files.exists(APP_DIR)) {
-            Files.createDirectories(APP_DIR); // Tạo tất cả thư mục con nếu cần
+            Files.createDirectories(APP_DIR);
         }
     }
 
     /**
-     * Ghi dữ liệu ra file một cách an toàn ("atomic"):
-     * Ghi tạm ra file trung gian, sau đó move sang file chính.
+     * Ghi bytes vào file một cách "atomic": viết vào tệp tạm rồi move tới đích.
      */
     private static void writeFileAtomic(Path target, byte[] data) throws IOException {
-        // Tạo file tạm trong thư mục ứng dụng
         Path tmp = Files.createTempFile(APP_DIR, "tmp", ".tmp");
-
-        // Ghi dữ liệu vào file tạm
-        try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(
-                tmp, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING))) {
+        try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(tmp, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING))) {
             out.write(data);
-            out.flush(); // Đảm bảo toàn bộ dữ liệu đã được ghi
+            out.flush();
         }
-
         try {
-            // Di chuyển file tạm sang file đích (atomic move)
             Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         } catch (AtomicMoveNotSupportedException e) {
-            // Nếu hệ thống không hỗ trợ move atomic -> move thường
             Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
     /**
-     * Hiển thị hộp thoại cảnh báo khi ghi file thất bại.
-     * Đảm bảo luôn chạy trên luồng JavaFX Application Thread.
+     * Hiển thị dialog thông báo khi ghi file thất bại. Chạy trên JavaFX Application Thread.
+     * Không ném exception ra ngoài để tránh crash game.
      */
     private static void showWriteErrorDialog(String message) {
         try {
             if (Platform.isFxApplicationThread()) {
-                // Nếu đang trên luồng JavaFX, hiển thị trực tiếp
                 Alert a = new Alert(AlertType.WARNING);
                 a.setTitle("Lưu thất bại");
                 a.setHeaderText(null);
                 a.setContentText(message);
                 a.show();
             } else {
-                // Nếu không, gửi yêu cầu hiển thị sang luồng JavaFX
                 Platform.runLater(() -> {
                     Alert a = new Alert(AlertType.WARNING);
                     a.setTitle("Lưu thất bại");
@@ -153,10 +120,9 @@ public final class FileManager {
     }
 
     /**
-     * Đọc toàn bộ nội dung file dưới dạng danh sách dòng.
-     *
-     * @param filename Tên file (được lưu trong thư mục APP_DIR)
-     * @return danh sách các dòng hoặc null nếu lỗi/xảy ra sự cố
+     * Đọc các dòng từ file.
+     * @param filename Tên file (sẽ được lưu trong APP_DIR)
+     * @return List các dòng, hoặc null nếu file không tồn tại/lỗi
      */
     public static java.util.List<String> readLinesFromFile(String filename) {
         synchronized (LOCK) {
@@ -164,12 +130,10 @@ public final class FileManager {
                 ensureAppDirExists();
                 Path filePath = APP_DIR.resolve(filename);
 
-                // Nếu file chưa tồn tại thì trả về null
                 if (!Files.exists(filePath)) {
                     return null;
                 }
 
-                // Đọc toàn bộ các dòng trong file
                 return Files.readAllLines(filePath);
             } catch (IOException ex) {
                 System.err.println("FileManager: failed to read file " + filename + " - " + ex.getMessage());
@@ -179,10 +143,9 @@ public final class FileManager {
     }
 
     /**
-     * Ghi danh sách các dòng ra file văn bản.
-     *
-     * @param filename tên file (được lưu trong thư mục APP_DIR)
-     * @param lines danh sách dòng cần ghi
+     * Ghi các dòng vào file.
+     * @param filename Tên file (sẽ được lưu trong APP_DIR)
+     * @param lines List các dòng cần ghi
      */
     public static void writeLinesToFile(String filename, java.util.List<String> lines) {
         synchronized (LOCK) {
@@ -190,17 +153,68 @@ public final class FileManager {
                 ensureAppDirExists();
                 Path filePath = APP_DIR.resolve(filename);
 
-                // Ghép các dòng lại thành chuỗi hoàn chỉnh
+                // Tạo content từ lines
                 StringBuilder sb = new StringBuilder();
                 for (String line : lines) {
                     sb.append(line).append(System.lineSeparator());
                 }
 
-                // Ghi ra file an toàn
                 writeFileAtomic(filePath, sb.toString().getBytes());
             } catch (IOException ex) {
                 System.err.println("FileManager: failed to write file " + filename + " - " + ex.getMessage());
                 showWriteErrorDialog("Lưu file thất bại:\n" + ex.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Load audio settings từ file.
+     * @return Array [volume, isMuted], hoặc null nếu file không tồn tại
+     */
+    public static double[] loadAudioSettings() {
+        synchronized (LOCK) {
+            try {
+                ensureAppDirExists();
+                Path audioFile = APP_DIR.resolve(AUDIO_SETTINGS_FILE);
+
+                if (!Files.exists(audioFile)) {
+                    return null;
+                }
+
+                java.util.List<String> lines = Files.readAllLines(audioFile);
+                if (lines.size() < 2) {
+                    return null;
+                }
+
+                double volume = Double.parseDouble(lines.get(0).trim());
+                boolean muted = Boolean.parseBoolean(lines.get(1).trim());
+
+                return new double[] { volume, muted ? 1.0 : 0.0 };
+            } catch (Exception ex) {
+                System.err.println("FileManager: failed to load audio settings - " + ex.getMessage());
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Save audio settings vào file.
+     * @param volume Âm lượng (0.0 - 1.0)
+     * @param isMuted Trạng thái mute
+     */
+    public static void saveAudioSettings(double volume, boolean isMuted) {
+        synchronized (LOCK) {
+            try {
+                ensureAppDirExists();
+                Path audioFile = APP_DIR.resolve(AUDIO_SETTINGS_FILE);
+
+                StringBuilder sb = new StringBuilder();
+                sb.append(volume).append(System.lineSeparator());
+                sb.append(isMuted).append(System.lineSeparator());
+
+                writeFileAtomic(audioFile, sb.toString().getBytes());
+            } catch (IOException ex) {
+                System.err.println("FileManager: failed to save audio settings - " + ex.getMessage());
             }
         }
     }

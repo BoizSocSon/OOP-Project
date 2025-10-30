@@ -32,10 +32,10 @@
  */
 package GeometryPrimitives;
 
+import Utils.Constants;
 import java.util.List;
 
 public class Line {
-    private static final double EPSILON = 1e-6;
     private final Point start;
     private final Point end;
 
@@ -44,6 +44,17 @@ public class Line {
         this.end = end;
     }
 
+    /**
+     * Tìm giao điểm của `this` với các cạnh của `rect` rồi trả về giao điểm gần
+     * với `start` nhất (theo khoảng cách Euclid).
+     *
+     * Thuật toán: lấy danh sách giao điểm từ `rect.intersectionPoints(this)`,
+     * nếu rỗng trả về null. Ngược lại duyệt và chọn điểm có khoảng cách nhỏ
+     * nhất tới `start`.
+     *
+     * @param "rect" hình chữ nhật cần kiểm tra
+     * @return điểm giao gần `start` nhất hoặc null nếu không có giao điểm
+     */
     public Point closestIntersectionToStartOfLine(Rectangle rect) {
         List<Point> intersections = rect.intersectionPoints(this);
         if (intersections.isEmpty()) {
@@ -65,29 +76,6 @@ public class Line {
         return closestPoint;
     }
 
-    /**
-     * Tìm giao điểm của `this` với các cạnh của `rect` rồi trả về giao điểm gần
-     * với `start` nhất (theo khoảng cách Euclid).
-     *
-     * Thuật toán: lấy danh sách giao điểm từ `rect.intersectionPoints(this)`,
-     * nếu rỗng trả về null. Ngược lại duyệt và chọn điểm có khoảng cách nhỏ
-     * nhất tới `start`.
-     *
-     * @param "rect" hình chữ nhật cần kiểm tra
-     * @return điểm giao gần `start` nhất hoặc null nếu không có giao điểm
-     */
-
-    public Point getStart() {
-        return start;
-    }
-
-    public Point getEnd() {
-        return end;
-    }
-
-    public double length() {
-        return start.distance(end);
-    }
 
     /**
      * Xác định vị trí tương đối của `point` so với đường thẳng vô hạn đi qua
@@ -114,9 +102,10 @@ public class Line {
         double endY = this.end.getY();
 
         // Tính toán vị trí tương đối bằng công thức tích chéo
-        double slopeCalc = (endY - startY) * (pointX - startX) - (endX - startX) * (pointY - startY);
+        double slopeCalc = (endY - startY) * (pointX - startX)
+                - (endX - startX) * (pointY - startY);
 
-        if (Math.abs(slopeCalc) < EPSILON) { // slopeCalc == 0
+        if (Math.abs(slopeCalc) < Constants.General.EPSILON) { // slopeCalc == 0
             return 0; // Nằm trên đường thẳng
         }
         if (slopeCalc > 0) {
@@ -147,23 +136,21 @@ public class Line {
         double endX = this.end.getX();
         double endY = this.end.getY();
 
-        // Kiểm tra trùng điểm đầu hoặc điểm cuối
         if (point.equals(this.start) || point.equals(this.end)) {
             return true;
         }
 
-        // Kiểm tra xem điểm có nằm trong hình chữ nhật hay không
-        if (pointX > Math.max(startX, endX) + EPSILON || pointX < Math.min(startX, endX) - EPSILON) {
-            return false;
-        }
-        if (pointY > Math.max(startY, endY) + EPSILON || pointY < Math.min(startY, endY) - EPSILON) {
+        if (pointX < Math.min(startX, endX) - Constants.General.EPSILON
+                || pointX > Math.max(startX, endX) + Constants.General.EPSILON) {
             return false;
         }
 
-        // Tính toán vị trí tương đối
-        double slopeCalc = (endY - startY) * (pointX - startX) - (endX - startX) * (pointY - startY);
+        if (pointY < Math.min(startY, endY) - Constants.General.EPSILON
+                || pointY > Math.max(startY, endY) + Constants.General.EPSILON) {
+            return false;
+        }
 
-        return Math.abs(slopeCalc) < EPSILON;
+        return directionPointRelToLine(point) == 0;
     }
 
     /**
@@ -184,8 +171,7 @@ public class Line {
      * @param other đoạn cần kiểm tra
      * @return true nếu hai đoạn collinear và có phần chồng lấp thực sự
      */
-    private boolean isOverlapping(Line other) {
-        // Lấy tọa độ
+    private boolean isOverLapping(Line other) {
         double x1 = this.start.getX();
         double y1 = this.start.getY();
         double x2 = this.end.getX();
@@ -195,11 +181,11 @@ public class Line {
         double x4 = other.end.getX();
         double y4 = other.end.getY();
 
-        // 1. Kiểm tra collinear bằng cross product
         double cross1 = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1);
         double cross2 = (x2 - x1) * (y4 - y1) - (y2 - y1) * (x4 - x1);
 
-        if (!(Math.abs(cross1) < EPSILON && Math.abs(cross2) < EPSILON)) {
+        if (!(Math.abs(cross1) < Constants.General.EPSILON
+                && Math.abs(cross2) < Constants.General.EPSILON)) {
             return false; // Không collinear
         }
 
@@ -211,8 +197,8 @@ public class Line {
         double overlapY2 = Math.min(Math.max(y1, y2), Math.max(y3, y4));
 
         // Nếu khoảng chiếu giao nhau hợp lệ trên cả 2 trục
-        boolean overlapOnX = overlapX1 < overlapX2 - EPSILON;
-        boolean overlapOnY = overlapY1 < overlapY2 - EPSILON;
+        boolean overlapOnX = overlapX1 < overlapX2 - Constants.General.EPSILON;
+        boolean overlapOnY = overlapY1 < overlapY2 - Constants.General.EPSILON;
 
         return overlapOnX || overlapOnY;
     }
@@ -275,11 +261,17 @@ public class Line {
      */
     public Point intersectionWith(Line other) {
         // Nếu không intersect (theo isIntersecting) thì nhanh return null
-        if (!this.isIntersecting(other)) return null;
+        if (!this.isIntersecting(other)) {
+            return null;
+        }
 
         // Nếu một trong hai là điểm
-        if (this.start.equals(this.end)) return other.isPointOnLine(this.start) ? this.start : null;
-        if (other.start.equals(other.end)) return this.isPointOnLine(other.start) ? other.start : null;
+        if (this.start.equals(this.end)) {
+            return other.isPointOnLine(this.start) ? this.start : null;
+        }
+        if (other.start.equals(other.end)) {
+            return this.isPointOnLine(other.start) ? other.start : null;
+        }
 
         // Vecto r = this.end - this.start
         double rX = this.end.getX() - this.start.getX();
@@ -295,18 +287,22 @@ public class Line {
         double qpy = other.start.getY() - this.start.getY();
         double qpxr = qpx * rY - qpy * rX;
 
-        if (Math.abs(rxs) < EPSILON) {
+        if (Math.abs(rxs) < Constants.General.EPSILON) {
             // r x s ≈ 0 => parallel or collinear
-            if (Math.abs(qpxr) < EPSILON) {
+            if (Math.abs(qpxr) < Constants.General.EPSILON) {
                 // collinear: kiểm tra overlap hoặc chạm endpoint
                 // Tính projection đơn giản trên trục X (hoặc Y nếu rX nhỏ)
-                boolean overlap = this.isOverlapping(other);
+                boolean overlap = this.isOverLapping(other);
                 if (overlap) {
                     return null; // infinite points -> theo thiết kế trả null
                 }
                 // không overlap nhưng có thể chạm endpoint: trả endpoint chung nếu có
-                if (this.start.equals(other.start) || this.start.equals(other.end)) return this.start;
-                if (this.end.equals(other.start) || this.end.equals(other.end)) return this.end;
+                if (this.start.equals(other.start) || this.start.equals(other.end)) {
+                    return this.start;
+                }
+                if (this.end.equals(other.start) || this.end.equals(other.end)) {
+                    return this.end;
+                }
                 return null;
             }
             // parallel but not collinear
@@ -322,7 +318,21 @@ public class Line {
         Point inter = new Point(interX, interY);
 
         // Đảm bảo điểm này nằm trên cả 2 đoạn (biện pháp an toàn)
-        if (this.isPointOnLine(inter) && other.isPointOnLine(inter)) return inter;
+        if (this.isPointOnLine(inter) && other.isPointOnLine(inter)) {
+            return inter;
+        }
         return null;
+    }
+
+    public Point getStart() {
+        return start;
+    }
+
+    public Point getEnd() {
+        return end;
+    }
+
+    public double length() {
+        return start.distance(end);
     }
 }

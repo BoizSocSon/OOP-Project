@@ -2,63 +2,14 @@ package Rounds;
 
 import Objects.Bricks.*;
 import Utils.Constants;
-
-//import Audio.MusicTrack;
-
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * {@code Round3} là lớp đại diện cho vòng chơi thứ ba trong trò chơi Brick Breaker.
- * <p>
- * Vòng này có tên là “Diamond Challenge” và được thiết kế đặc biệt với bố cục hình kim cương,
- * sử dụng kết hợp nhiều loại gạch khác nhau như:
- * <ul>
- *     <li>{@link NormalBrick} – gạch thông thường, có nhiều màu sắc khác nhau.</li>
- *     <li>{@link SilverBrick} – gạch bạc, cần nhiều lần đánh trúng để phá.</li>
- *     <li>{@link GoldBrick} – gạch vàng, không thể phá hủy (indestructible).</li>
- * </ul>
- * </p>
- *
- * <p><b>Đặc điểm nổi bật:</b></p>
- * <ul>
- *     <li>Bố cục gạch hình kim cương được xác định thủ công qua mảng hai chiều (layout matrix).</li>
- *     <li>Tăng độ khó rõ rệt so với các vòng trước nhờ sự kết hợp của gạch vàng và bạc.</li>
- *     <li>Giữ nguyên việc canh giữa lưới gạch trong khu vực chơi (play area).</li>
- * </ul>
- *
- * @author
- * @version 1.0
- */
-public class Round3 extends RoundBase {
+public class Round3 extends RoundBase{
 
-    /**
-     * Khởi tạo đối tượng {@code Round3}.
-     * <p>
-     * Gọi constructor của lớp cha {@link RoundBase} với số vòng là 3
-     * và tiêu đề là “Diamond Challenge”.
-     * </p>
-     */
     public Round3() {
         super(3, "Diamond Challenge");
     }
-
-    /**
-     * Tạo danh sách các viên gạch (bricks) cho vòng 3.
-     * <p>
-     * Bố cục gạch được xác định dựa trên một mảng hai chiều, trong đó:
-     * <ul>
-     *     <li><b>0</b>: vị trí trống (không có gạch).</li>
-     *     <li><b>1–8</b>: gạch thường, với 8 màu khác nhau.</li>
-     *     <li><b>9</b>: gạch vàng (indestructible, không thể phá).</li>
-     *     <li><b>10</b>: gạch bạc (SilverBrick, cần nhiều lần đánh để phá).</li>
-     * </ul>
-     * Các viên gạch được vẽ thành hình kim cương, canh giữa theo chiều ngang
-     * và đặt phía dưới thanh giao diện (UI bar).
-     * </p>
-     *
-     * @return Danh sách {@link Brick} chứa toàn bộ các viên gạch được tạo cho vòng 3.
-     */
     @Override
     public List<Brick> createBricks() {
         List<Brick> bricks = new ArrayList<>();
@@ -94,7 +45,7 @@ public class Round3 extends RoundBase {
         double totalWidth = cols * brickW + (cols - 1) * hSpacing;
         double startX = Constants.PlayArea.PLAY_AREA_X + (playAreaWidth - totalWidth) / 2.0;
 
-        // Color mapping for normal bricks
+        // Color mapping
         BrickType[] colors = {
                 BrickType.RED,      // 1
                 BrickType.BLUE,     // 2

@@ -7,59 +7,23 @@ import GeometryPrimitives.Rectangle;
 import Objects.Core.MovableObject;
 import Utils.Constants;
 
-/**
- * <p>Lớp đại diện cho **Quả bóng (Ball)** trong trò chơi, kế thừa các đặc tính
- * di chuyển từ {@link MovableObject}.</p>
- * <p>Bóng có các thuộc tính va chạm (radius, bounceCoefficient) và trạng thái
- * gắn với thanh đỡ (paddle) hay không (isAttached).</p>
- */
 public class Ball extends MovableObject{
-
-    /** Bán kính của quả bóng. */
     private double radius;
-
-    /** Hệ số đàn hồi (từ 0.0 đến 1.0). 1.0 = đàn hồi hoàn toàn. */
     private double bounceCoefficient = 1.0; // 1.0 = đàn hồi hoàn toàn
-
-    /** Trạng thái bóng có đang bị gắn (dính) vào thanh đỡ hay không. */
     private boolean isAttached = false;
 
-    /**
-     * <p>Constructor khởi tạo một quả bóng.</p>
-     *
-     * @param centerX Tọa độ X tâm bóng.
-     * @param centerY Tọa độ Y tâm bóng.
-     * @param radius Bán kính của bóng.
-     * @param initialVelocity Vận tốc ban đầu của bóng.
-     */
     // Kế thừa constructor từ MovableObject với vị trí (x,y) là góc trên bên trái của bounding box
     public Ball(double centerX, double centerY, double radius, Velocity initialVelocity) {
-        // Gọi constructor lớp cha (MovableObject): x, y, width, height
-        // Bounding box (hộp giới hạn) bắt đầu từ (centerX - radius, centerY - radius)
         super(centerX - radius, centerY - radius, radius * 2, radius * 2);
         this.radius = radius;
-        // Thiết lập vận tốc ban đầu
         setVelocity(initialVelocity);
     }
 
-    /**
-     * <p>Trả về tọa độ tâm của quả bóng.</p>
-     *
-     * @return Đối tượng {@link Point} đại diện cho tâm bóng.
-     */
     public Point getCenter() {
-        // Tâm = (x + radius, y + radius)
         return new Point(getX() + radius, getY() + radius);
     }
 
-    /**
-     * <p>Thiết lập tọa độ tâm mới cho quả bóng.</p>
-     * <p>Việc này tự động cập nhật tọa độ góc trên bên trái (x, y) của bounding box.</p>
-     *
-     * @param p Đối tượng {@link Point} là tâm mới của bóng.
-     */
     public void setCenter(Point p) {
-        // Cập nhật góc trên bên trái (x, y) từ tâm: x = centerX - radius
         setX(p.getX() - radius);
         setY(p.getY() - radius);
     }
@@ -67,21 +31,14 @@ public class Ball extends MovableObject{
     /** Cập nhật vị trí bóng theo vận tốc hiện tại (gọi move()). */
     @Override
     public void update() {
-        // Chỉ di chuyển nếu bóng không bị gắn vào thanh đỡ
-        if (!isAttached) {
-            move();
-        }
+        move();
     }
 
     /**
-     * <p>Kiểm tra và xử lý va chạm giữa bóng và hình chữ nhật (paddle, brick, tường).</p>
-     * <p>Sử dụng kỹ thuật **Swept-Circle** (bóng quét quỹ đạo) so với hình chữ nhật mở rộng
-     * để tìm điểm va chạm sớm nhất.</p>
-     *
+     * Kiểm tra và xử lý va chạm giữa bóng và hình chữ nhật (paddle, brick, tường).
      * @param rect hình chữ nhật cần kiểm tra va chạm
      * @return true nếu có va chạm và đã xử lý phản xạ, false nếu không va chạm
      */
-    @Override
     public boolean checkCollisionWithRect(Rectangle rect) {
         // Cách tiếp cận: swept-circle so với hình chữ nhật căn theo trục (AABB - axis-aligned bounding box):
         // Mở rộng (inflate) hình chữ nhật theo bán kính bóng (tương tự phép Minkowski sum) và coi bóng như một điểm
@@ -94,14 +51,12 @@ public class Ball extends MovableObject{
         double rw = rect.getWidth();
         double rh = rect.getHeight();
 
-        // inflated rectangle (Hình chữ nhật được mở rộng)
+        // inflated rectangle
         Rectangle inflated = new Rectangle(new Point(rx - radius, ry - radius), rw + 2 * radius, rh + 2 * radius);
-        // Tìm điểm giao nhau gần nhất của quỹ đạo bóng với hình chữ nhật mở rộng
         Point hit = traj.closestIntersectionToStartOfLine(inflated);
         if (hit == null) return false;
 
         // Compute the closest point on the original rectangle to the hit point (clamp)
-        // Tính toán điểm gần nhất trên hình chữ nhật gốc so với điểm va chạm (hit point)
         double closestX = Math.max(rx, Math.min(hit.getX(), rx + rw));
         double closestY = Math.max(ry, Math.min(hit.getY(), ry + rh));
 
@@ -129,7 +84,6 @@ public class Ball extends MovableObject{
             double push = 0.5;
             double newCenterX = hit.getX();
             double newCenterY = hit.getY();
-            // Điều chỉnh vị trí tâm bóng để tách biệt nó ra khỏi hình chữ nhật
             if (Math.abs(hit.getX() - rx) < Constants.General.EPSILON) newCenterX = rx - radius - push;
             if (Math.abs(hit.getX() - (rx + rw)) < Constants.General.EPSILON) newCenterX = rx + rw + radius + push;
             if (Math.abs(hit.getY() - ry) < Constants.General.EPSILON) newCenterY = ry - radius - push;
@@ -138,45 +92,30 @@ public class Ball extends MovableObject{
             return true;
         }
 
-        // Chuẩn hoá vector pháp tuyến (Normalize the normal vector)
+        // Chuẩn hoá vector pháp tuyến
         nx /= len; ny /= len;
 
         // Phản xạ vector vận tốc theo pháp tuyến: v' = v - 2*(v·n)*n, sau đó nhân hệ số đàn hồi
-        // Công thức phản xạ vật lý
         double vdotn = dx * nx + dy * ny;
         double reflectedDx = dx - 2 * vdotn * nx;
         double reflectedDy = dy - 2 * vdotn * ny;
-        // Thiết lập vận tốc phản xạ (có nhân hệ số đàn hồi)
         setVelocity(new Velocity(reflectedDx * bounceCoefficient, reflectedDy * bounceCoefficient));
 
         // Compute penetration (how much the circle overlaps the rectangle)
-        // Tính toán độ xuyên thấu (bóng chồng lên hình chữ nhật bao nhiêu)
         double distFromClosestToHit = Math.hypot(hit.getX() - closestX, hit.getY() - closestY);
         double penetration = Math.max(0.0, radius - distFromClosestToHit);
         double eps = 1e-3; // tiny extra offset to ensure separation
         double pushOut = penetration + eps;
-
-        // Đặt lại vị trí tâm bóng để đẩy bóng ra khỏi hình chữ nhật
         double newCenterX = closestX + nx * (radius + pushOut);
         double newCenterY = closestY + ny * (radius + pushOut);
         setCenter(new Point(newCenterX, newCenterY));
         return true;
     }
 
-    /**
-     * <p>Đặt trạng thái gắn/dính của bóng (ví dụ: gắn vào thanh đỡ).</p>
-     *
-     * @param attached {@code true} nếu bóng được gắn, {@code false} nếu bóng được thả.
-     */
     public void setAttached(boolean attached) {
         isAttached = attached;
     }
 
-    /**
-     * <p>Kiểm tra xem bóng có đang bị gắn vào thanh đỡ hay không.</p>
-     *
-     * @return {@code true} nếu bóng đang bị gắn, ngược lại {@code false}.
-     */
     public boolean isAttached() {
         return isAttached;
     }

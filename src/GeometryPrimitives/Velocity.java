@@ -45,27 +45,16 @@ public class Velocity {
     }
 
     /**
-     * Tạo Velocity từ góc (degree) và tốc độ (magnitude).
+     * Áp dụng velocity lên một điểm: trả về một điểm mới có toạ độ
+     * (point.x + dx, point.y + dy).
      *
-     * Công thức sử dụng trong code:
-     *   dx = speed * sin(angle)
-     *   dy = -speed * cos(angle)
-     *
-     * Trong đó `angle` truyền vào bằng độ; hàm chuyển sang radian bằng
-     * Math.toRadians(angle) trước khi gọi sin/cos.
-     *
-     * Lưu ý về quy ước: 0 độ cho hướng lên trên (dy = -speed), 90 độ cho hướng sang phải.
-     * Nếu bạn muốn sử dụng quy ước toán học chuẩn (0 độ theo trục X dương),
-     * công thức cần đổi thành dx = speed * cos(theta), dy = speed * sin(theta).
-     *
-     * @param angle góc theo độ
-     * @param speed độ lớn (magnitude)
-     * @return Velocity mới tương ứng
+     * @param point điểm ban đầu
+     * @return điểm mới sau khi dịch chuyển
      */
-    public static Velocity fromAngleAndSpeed(double angle, double speed) {
-        double dx = speed * Math.sin(Math.toRadians(angle));
-        double dy = -speed * Math.cos(Math.toRadians(angle));
-        return new Velocity(dx, dy);
+    public Point applyToPoint(Point point) {
+        double newX = point.getX() + this.dx;
+        double newY = point.getY() + this.dy;
+        return new Point(newX, newY);
     }
 
     /**
@@ -82,16 +71,5 @@ public class Velocity {
      */
     public double getDy() {
         return dy;
-    }
-
-    /**
-     * Áp dụng velocity lên một điểm: trả về một điểm mới có toạ độ
-     * (point.x + dx, point.y + dy).
-     *
-     * @param point điểm ban đầu
-     * @return điểm mới sau khi dịch chuyển
-     */
-    public Point applyToPoint(Point point) {
-        return new Point(point.getX() + dx, point.getY() + dy);
     }
 }
