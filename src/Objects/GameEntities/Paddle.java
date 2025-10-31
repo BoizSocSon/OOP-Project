@@ -1,88 +1,141 @@
 package Objects.GameEntities;
 
+import Utils.AnimationFactory;
+import Utils.Constants;
 import GeometryPrimitives.Velocity;
 import Render.Animation;
-import Render.Renderer;
 import Objects.Core.MovableObject;
-import Utils.AnimationFactory;
 import java.util.List;
 import java.util.ArrayList;
 
-/**
- * Thanh điều khiển (paddle) do người chơi điều khiển.
- *
- * Tính năng:
- * - Di chuyển ngang (left/right/stop) bằng cách thay đổi vận tốc theo trục x.
- * - PowerUp effects với animations (WIDE, LASER, MATERIALIZE, EXPLODE)
- * - Animation state management
- * - Laser shooting system với cooldown
- */
-public class Paddle extends MovableObject {
-    private double speed; // pixels per frame
-    private double originalWidth; // Store original width for expand/contract
-    
-    // PowerUp state flags
+public class Paddle extends MovableObject{
     private boolean catchMode = false;
     private int laserShots = 0;
-    private long laserCooldown = 0; // Timestamp when next laser can be fired
-    
-    // Animation system
+    private long laserCooldown = 0;
+
     private PaddleState currentState = PaddleState.NORMAL;
     private Animation currentAnimation = null;
     private boolean animationPlaying = false;
-    
+
     // Timers for effects
     private long expandExpiryTime = 0; // When wide paddle should shrink
+    private long laserExpiryTime = 0; // When laser effect should expire
+    private long catchExpiryTime = 0; // When catch effect should expire
+    private long slowExpiryTime = 0; // When slow effect should expire
 
-    public Paddle(double x, double y, double width, double height, double speed) {
+
+    public Paddle(double x, double y, double width, double height) {
         super(x, y, width, height);
-        this.speed = speed;
-        this.originalWidth = width; // Store for expand/contract
     }
 
     @Override
     public void update() {
         move();
-        
+
         // Update animation if playing
         if (animationPlaying && currentAnimation != null) {
             currentAnimation.update();
-            
-            // Check if one-shot animations finished (MATERIALIZE, EXPLODE)
-            if (currentAnimation.isFinished()) {
+
+            // Check if one-shot animations finished
+            if (currentAnimation.isFinished() && !currentAnimation.isPlaying()) {
                 if (currentState == PaddleState.MATERIALIZE) {
                     // After materialize, go to NORMAL
+                    System.out.println("Paddle: MATERIALIZE animation finished, switching to NORMAL");
                     setState(PaddleState.NORMAL);
                 } else if (currentState == PaddleState.EXPLODE) {
-                    // After explode, stay hidden or reset
+                    // After explode, stop animation but keep state
+                    // The paddle will be reset or respawned by GameManager
+                    System.out.println("Paddle: EXPLODE animation finished");
                     animationPlaying = false;
+                    currentAnimation = null;
+                } else if (currentState == PaddleState.WIDE || currentState == PaddleState.LASER) {
+                    // After transition animation, stop playing but keep state
+                    // Paddle will show static sprite for this state
+                    System.out.println("Paddle: " + currentState + " transition animation finished");
+                    animationPlaying = false;
+                } else if (currentAnimation.isReversed()) {
+                    // Reversed animation finished, switch to NORMAL
+                    System.out.println("Paddle: Reversed animation finished, switching to NORMAL");
+                    setState(PaddleState.NORMAL);
+                    animationPlaying = false;
+                    currentAnimation = null;
                 }
             }
         }
-        
-        // Check if expand effect should expire
-        if (expandExpiryTime > 0 && System.currentTimeMillis() >= expandExpiryTime) {
-            shrinkToNormal();
-            expandExpiryTime = 0;
+
+        long currentTime = System.currentTimeMillis();
+        long warningThreshold = Constants.PowerUps.WARNING_THRESHOLD;
+
+        // Check for WIDE pulsate warning
+        if (expandExpiryTime > 0) {
+            long timeRemaining = expandExpiryTime - currentTime;
+
+            if (timeRemaining <= 0) {
+                // Effect expired, shrink back to normal
+                shrinkToNormal();
+                expandExpiryTime = 0;
+            } else if (timeRemaining <= warningThreshold && currentState == PaddleState.WIDE) {
+                // Warning: switch to WIDE_PULSATE
+                setState(PaddleState.WIDE_PULSATE);
+                System.out.println("Paddle: WIDE effect expiring soon, switching to WIDE_PULSATE");
+            }
+        }
+
+        // Check for LASER pulsate warning
+        if (laserExpiryTime > 0) {
+            long timeRemaining = laserExpiryTime - currentTime;
+
+            if (timeRemaining <= 0) {
+                // Effect expired, disable laser
+                disableLaser();
+                laserExpiryTime = 0;
+            } else if (timeRemaining <= warningThreshold && currentState == PaddleState.LASER) {
+                // Warning: switch to LASER_PULSATE
+                setState(PaddleState.LASER_PULSATE);
+                System.out.println("Paddle: LASER effect expiring soon, switching to LASER_PULSATE");
+            }
+        }
+
+        // Check for CATCH/SLOW pulsate warning (shape-independent effects)
+        boolean hasCatchEffect = catchExpiryTime > 0 && (catchExpiryTime - currentTime) > 0;
+        boolean hasSlowEffect = slowExpiryTime > 0 && (slowExpiryTime - currentTime) > 0;
+        boolean hasShapeIndependentEffect = hasCatchEffect || hasSlowEffect;
+
+        if (hasShapeIndependentEffect && currentState == PaddleState.NORMAL) {
+            // Has active effects, check if warning needed
+            long catchTimeRemaining = hasCatchEffect ? catchExpiryTime - currentTime : Long.MAX_VALUE;
+            long slowTimeRemaining = hasSlowEffect ? slowExpiryTime - currentTime : Long.MAX_VALUE;
+            long minTimeRemaining = Math.min(catchTimeRemaining, slowTimeRemaining);
+
+            if (minTimeRemaining <= warningThreshold) {
+                // Warning: switch to PULSATE
+                setState(PaddleState.PULSATE);
+                System.out.println("Paddle: Shape-independent effect expiring soon, switching to PULSATE");
+            }
+        } else if (!hasShapeIndependentEffect && currentState == PaddleState.PULSATE) {
+            // No more shape-independent effects active and currently in PULSATE state
+            // Switch back to NORMAL
+            setState(PaddleState.NORMAL);
+            System.out.println("Paddle: Shape-independent effects expired, switching back to NORMAL");
+        }
+
+        // Clean up expired timers
+        if (catchExpiryTime > 0 && (catchExpiryTime - currentTime) <= 0) {
+            catchExpiryTime = 0;
+        }
+        if (slowExpiryTime > 0 && (slowExpiryTime - currentTime) <= 0) {
+            slowExpiryTime = 0;
         }
     }
 
-    @Override
-    public void render(Renderer renderer) {
-        renderer.drawPaddle(this);
-    }
-
-    /** Bắt đầu di chuyển sang trái bằng cách đặt vận tốc âm. */
     public void moveLeft() {
-        setVelocity(new Velocity(-speed, 0));
+        setVelocity(new Velocity(-Constants.Paddle.PADDLE_SPEED, 0));
     }
 
-    /** Bắt đầu di chuyển sang phải bằng cách đặt vận tốc dương. */
     public void moveRight() {
-        setVelocity(new Velocity(speed, 0));
+        setVelocity(new Velocity(Constants.Paddle.PADDLE_SPEED, 0));
     }
 
-    /** Dừng chuyển động ngang. */
     public void stop() {
         setVelocity(new Velocity(0,0));
     }
@@ -90,42 +143,37 @@ public class Paddle extends MovableObject {
     // ============================================================
     // Animation System
     // ============================================================
-    
-    /**
-     * Sets paddle state and loads corresponding animation.
-     * @param state New paddle state
-     */
-    public void setState(PaddleState state) {
-        if (this.currentState == state && animationPlaying) {
-            return; // Already in this state
+
+    public void setState(PaddleState newState) {
+        if (this.currentState == newState && animationPlaying) {
+            return;
         }
-        
-        this.currentState = state;
-        this.currentAnimation = AnimationFactory.createPaddleAnimation(state);
-        
+
+        this.currentState = newState;
+
+        // NORMAL state doesn't have animation, just a static sprite
+        if (newState == PaddleState.NORMAL) {
+            this.currentAnimation = null;
+            this.animationPlaying = false;
+            return;
+        }
+
+        this.currentAnimation = AnimationFactory.createPaddleAnimation(newState);
+
         if (currentAnimation != null) {
             currentAnimation.play();
             animationPlaying = true;
         }
     }
-    
-    /**
-     * Gets current paddle state.
-     */
+
     public PaddleState getState() {
         return currentState;
     }
-    
-    /**
-     * Gets current animation for rendering.
-     */
+
     public Animation getAnimation() {
         return currentAnimation;
     }
-    
-    /**
-     * Checks if animation is currently playing.
-     */
+
     public boolean isAnimationPlaying() {
         return animationPlaying && currentAnimation != null && currentAnimation.isPlaying();
     }
@@ -133,118 +181,124 @@ public class Paddle extends MovableObject {
     // ============================================================
     // PowerUp Effects
     // ============================================================
-    
-    /**
-     * Enables laser mode and sets number of shots.
-     * @param shots Number of laser shots to grant
-     */
-    public void enableLaser(int shots) {
+
+    public void enableLaser() {
+        // If paddle is currently expanded, shrink it first (immediate width change)
+        if (currentState == PaddleState.WIDE || currentState == PaddleState.WIDE_PULSATE) {
+            // Calculate center before changing width
+            double centerX = getX() + getWidth() / 2.0;
+            double normalWidth = Constants.Paddle.PADDLE_WIDTH;
+
+            // Immediately shrink width
+            setWidth(normalWidth);
+            setX(centerX - normalWidth / 2.0);
+
+            // Cancel expand effect timer
+            expandExpiryTime = 0;
+
+            System.out.println("Paddle: Shrunk from WIDE to enable LASER");
+        }
+
         setState(PaddleState.LASER);
-        this.laserShots = shots;
-        // AudioManager.playSFX(LASER_ACTIVATE) - to be implemented
+        laserShots = Constants.Laser.LASER_SHOTS;
+        laserExpiryTime = System.currentTimeMillis() + Constants.PowerUps.LASER_DURATION;
     }
-    
-    /**
-     * Shoots lasers from paddle sides.
-     * @return List of newly created Laser objects (2 lasers - left & right)
-     */
+
+    public void disableLaser() {
+        if (currentState == PaddleState.LASER || currentState == PaddleState.LASER_PULSATE) {
+            // Play reversed animation back to NORMAL
+            playReversedAnimation(PaddleState.LASER);
+            laserShots = 0;
+            laserExpiryTime = 0;
+            System.out.println("Paddle: Laser disabled with reversed animation");
+        }
+    }
+
     public List<Laser> shootLaser() {
         List<Laser> lasers = new ArrayList<>();
-        
-        // Check if can shoot
+
         if (laserShots <= 0) {
-            return lasers; // Empty list
+            return lasers;
         }
-        
+
         long now = System.currentTimeMillis();
         if (now < laserCooldown) {
-            return lasers; // Still on cooldown
+            return lasers;
         }
-        
-        // Consume one shot
+
         laserShots--;
-        
-        // Set cooldown (300ms)
-        laserCooldown = now + 300;
-        
-        // Create 2 lasers (left & right side of paddle)
+
+        laserCooldown = now + Constants.Laser.LASER_COOLDOWN;
+
         double paddleLeft = getX();
         double paddleRight = getX() + getWidth();
         double paddleTop = getY();
-        
-        // Left laser (offset 10px from left edge)
+
         lasers.add(new Laser(paddleLeft + 10, paddleTop));
-        
-        // Right laser (offset 10px from right edge)
-        lasers.add(new Laser(paddleRight - 14, paddleTop)); // -14 to account for laser width
-        
-        // AudioManager.playSFX(LASER_SHOOT) - to be implemented
-        
-        // If no more shots, disable laser mode
-        if (laserShots <= 0) {
-            setState(PaddleState.NORMAL);
-        }
-        
+        lasers.add(new Laser(paddleRight - 10 - Constants.Laser.LASER_WIDTH, paddleTop));
+
+        // Don't disable laser when shots depleted, only when time expires
+        // Paddle will stay in LASER state until laserExpiryTime
+
         return lasers;
     }
-    
-    /**
-     * Expands paddle to wide size.
-     */
+
     public void expand() {
+        if (getState() == PaddleState.WIDE || getState() == PaddleState.WIDE_PULSATE) {
+            expandExpiryTime = System.currentTimeMillis() + Constants.PowerUps.EXPAND_DURATION;
+            return; // chỉ gia hạn thời gian, không mở rộng thêm
+        }
+
+        // If paddle has laser, cancel laser effect (don't play animation, just clear state)
+        if (currentState == PaddleState.LASER || currentState == PaddleState.LASER_PULSATE) {
+            laserShots = 0;
+            laserExpiryTime = 0;
+            System.out.println("Paddle: Laser cancelled by EXPAND powerup");
+        }
+
         setState(PaddleState.WIDE);
-        
-        // Expand width by 1.5x
+
         double centerX = getX() + getWidth() / 2.0;
-        setWidth(originalWidth * 1.5);
-        
-        // Adjust X to keep center position
-        setX(centerX - getWidth() / 2.0);
-        
-        // Schedule shrink after 10 seconds
-        expandExpiryTime = System.currentTimeMillis() + 10000;
+        double newWidth = Constants.Paddle.PADDLE_WIDE_WIDTH;
+        setWidth(newWidth);
+        setX(centerX - newWidth / 2.0);
+        expandExpiryTime = System.currentTimeMillis() + Constants.PowerUps.EXPAND_DURATION;
     }
-    
-    /**
-     * Shrinks paddle back to normal size.
-     */
-    private void shrinkToNormal() {
-        setState(PaddleState.NORMAL);
-        
-        // Restore original width
+
+    public void shrinkToNormal() {
+        if (getState() != PaddleState.WIDE && getState() != PaddleState.WIDE_PULSATE) {
+            return; // Chỉ thu nhỏ nếu đang ở trạng thái WIDE hoặc WIDE_PULSATE
+        }
+
+        // Play reversed animation back to NORMAL
+        playReversedAnimation(PaddleState.WIDE);
+
         double centerX = getX() + getWidth() / 2.0;
-        setWidth(originalWidth);
-        
-        // Adjust X to keep center position
+        double normalWidth = Constants.Paddle.PADDLE_WIDTH;
+        setWidth(normalWidth);
+
         setX(centerX - getWidth() / 2.0);
+        expandExpiryTime = 0;
     }
-    
-    /**
-     * Enables catch mode (ball sticks to paddle).
-     */
+
     public void enableCatch() {
-        setState(PaddleState.PULSATE);
         this.catchMode = true;
+        catchExpiryTime = System.currentTimeMillis() + Constants.PowerUps.CATCH_DURATION;
     }
-    
-    /**
-     * Disables catch mode.
-     */
+
     public void disableCatch() {
         this.catchMode = false;
-        if (currentState == PaddleState.PULSATE) {
-            setState(PaddleState.NORMAL);
-        }
+        catchExpiryTime = 0;
     }
 
     // ============================================================
     // PowerUp State Getters/Setters
     // ============================================================
-    
+
     public boolean isCatchModeEnabled() {
         return catchMode;
     }
-    
+
     public void setCatchModeEnabled(boolean enabled) {
         this.catchMode = enabled;
         if (enabled) {
@@ -253,14 +307,14 @@ public class Paddle extends MovableObject {
             disableCatch();
         }
     }
-    
+
     public boolean isLaserEnabled() {
-        return laserShots > 0 && currentState == PaddleState.LASER;
+        return laserShots > 0 && (currentState == PaddleState.LASER || currentState == PaddleState.LASER_PULSATE);
     }
-    
+
     public void setLaserEnabled(boolean enabled) {
         if (enabled) {
-            enableLaser(5); // Default 5 shots
+            enableLaser();
         } else {
             this.laserShots = 0;
             if (currentState == PaddleState.LASER) {
@@ -268,43 +322,49 @@ public class Paddle extends MovableObject {
             }
         }
     }
-    
+
     public int getLaserShots() {
         return laserShots;
     }
-    
-    public void setLaserShots(int shots) {
-        this.laserShots = shots;
-        if (shots > 0) {
-            setState(PaddleState.LASER);
-        } else if (currentState == PaddleState.LASER) {
-            setState(PaddleState.NORMAL);
-        }
-    }
-    
-    public double getOriginalWidth() {
-        return originalWidth;
+
+    public void setSlowEffectExpiry(long expiryTime) {
+        this.slowExpiryTime = expiryTime;
     }
 
-    public double getSpeed() {
-        return speed;
+    public void clearSlowEffect() {
+        this.slowExpiryTime = 0;
     }
-    
-    public void setSpeed(double s) {
-        this.speed = s;
-    }
-    
-    /**
-     * Triggers materialize animation (spawn effect).
-     */
+
     public void playMaterializeAnimation() {
         setState(PaddleState.MATERIALIZE);
     }
-    
-    /**
-     * Triggers explode animation (death effect).
-     */
+
     public void playExplodeAnimation() {
         setState(PaddleState.EXPLODE);
+    }
+
+    /**
+     * Plays a reversed animation from the specified state back to NORMAL.
+     * Used when effects expire (WIDE -> NORMAL, LASER -> NORMAL).
+     */
+    private void playReversedAnimation(PaddleState fromState) {
+        if (fromState == PaddleState.NORMAL) {
+            return;
+        }
+
+        // Create reversed animation
+        this.currentAnimation = AnimationFactory.createPaddleAnimation(fromState);
+
+        if (currentAnimation != null) {
+            currentAnimation.playReversed();
+            animationPlaying = true;
+
+            // Schedule state change to NORMAL after animation completes
+            // This will be handled in update() when animation finishes
+            System.out.println("Paddle: Playing reversed animation from " + fromState + " to NORMAL");
+        } else {
+            // Fallback if animation not available
+            setState(PaddleState.NORMAL);
+        }
     }
 }

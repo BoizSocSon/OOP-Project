@@ -24,8 +24,9 @@
  */
 package GeometryPrimitives;
 
+import Utils.Constants;
+
 public class Point {
-    private static final double EPSILON = 1e-6;
     private double x;
     private double y;
 
@@ -49,23 +50,38 @@ public class Point {
      * @return khoảng cách (double, >= 0)
      */
     public double distance(Point other) {
-        return Math.sqrt(Math.pow(this.x - other.x, 2) + Math.pow(this.y - other.y, 2));
+        double dx = this.x - other.x;
+        double dy = this.y - other.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (!(obj instanceof Point)) {
+            return false;
+        }
+
+        Point other = (Point) obj;
+
+        return Math.abs(this.x - other.x) < Constants.General.EPSILON
+                && Math.abs(this.y - other.y) < Constants.General.EPSILON;
     }
 
     /**
-     * So sánh hai điểm theo toạ độ với sai số EPSILON để bù trừ cho lỗi làm tròn.
-     *
-     * Lưu ý: đây không phải là override của `Object.equals(Object)` mà là phương
-     * thức đặc thù `equals(Point)`. Hàm trả về false nếu `other` là null.
-     *
-     * @param other điểm cần so sánh
-     * @return true nếu hai toạ độ x và y tương đương trong biên EPSILON
+     * Trả về mã băm của điểm, sử dụng toạ độ x và y đã được làm tròn theo EPSILON.
+     * Cho phép hai điểm gần nhau trong biên EPSILON có cùng mã băm.
      */
-    public boolean equals(Point other) {
-        if (other == null) {
-            return false;
-        }
-        return Math.abs(this.x - other.x) < EPSILON && Math.abs(this.y - other.y) < EPSILON;
+    @Override
+    public int hashCode() {
+        int hx = Double.hashCode(Math.round(x/Constants.General.EPSILON));
+        int hy = Double.hashCode(Math.round(y/Constants.General.EPSILON));
+        return 31 * hx + hy;
     }
 
     /**
@@ -84,22 +100,5 @@ public class Point {
      */
     public double getY() {
         return y;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (!(obj instanceof Point)) return false;
-        Point other = (Point) obj;
-        return Math.abs(this.x - other.x) < EPSILON && Math.abs(this.y - other.y) < EPSILON;
-    }
-
-    @Override
-    public int hashCode() {
-        // Use Double.hashCode for stable hashing that aligns with equals tolerance reasonably.
-        int hx = Double.hashCode(Math.round(x / EPSILON) );
-        int hy = Double.hashCode(Math.round(y / EPSILON) );
-        return 31 * hx + hy;
     }
 }

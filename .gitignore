@@ -8,7 +8,6 @@ out/
 *.puml
 *.py
 *.txt
-src/Test/
 
 ### Eclipse ###
 .apt_generated

@@ -1,47 +1,34 @@
 package Objects.GameEntities;
 
-/**
- * Enum định nghĩa các trạng thái hoạt ảnh của Paddle.
- *
- * Mỗi state tương ứng với một bộ sprite animation hoặc sprite đơn.
- * AnimationFactory sử dụng enum này để tạo Animation phù hợp.
- */
 public enum PaddleState {
-    /**
-     * Trạng thái bình thường (mặc định)
-     * Sprite: paddle.png (static, không animation)
-     */
-    NORMAL,
+    NORMAL("paddle", 1, false),
+    WIDE("paddle_wide", 9, false),                 // Transition animation (one-shot)
+    WIDE_PULSATE("paddle_wide_pulsate", 4, true),  // Warning animation (loop)
+    LASER("paddle_laser", 16, false),              // Transition animation (one-shot)
+    LASER_PULSATE("paddle_laser_pulsate", 4, true), // Warning animation (loop)
+    PULSATE("paddle_pulsate", 4, true),            // Warning animation (loop)
+    MATERIALIZE("paddle_materialize", 15, false),  // Spawn animation (one-shot)
+    EXPLODE("paddle_explode", 8, false);           // Death animation (one-shot)
 
-    /**
-     * Trạng thái paddle được mở rộng (EXPAND power-up)
-     * Animation: paddle_wide_1.png ... paddle_wide_9.png
-     */
-    WIDE,
+    private final String paddlePrefix;
+    private final int frameCount;
+    private final boolean shouldLoop;
 
-    /**
-     * Trạng thái paddle có laser (LASER power-up)
-     * Animation: paddle_laser_1.png ... paddle_laser_16.png
-     */
-    LASER,
+    PaddleState(String paddlePrefix, int frameCount, boolean shouldLoop) {
+        this.paddlePrefix = paddlePrefix;
+        this.frameCount = frameCount;
+        this.shouldLoop = shouldLoop;
+    }
 
-    /**
-     * Trạng thái paddle nhấp nháy (effect khi sắp hết power-up)
-     * Animation: paddle_pulsate_1.png ... paddle_pulsate_4.png
-     */
-    PULSATE,
+    public String getPaddlePrefix() {
+        return paddlePrefix;
+    }
 
-    /**
-     * Trạng thái paddle xuất hiện/hiện thân (spawn animation)
-     * Animation: paddle_materialize_1.png ... paddle_materialize_15.png
-     * Chạy 1 lần (loop=false)
-     */
-    MATERIALIZE,
+    public int getFrameCount() {
+        return frameCount;
+    }
 
-    /**
-     * Trạng thái paddle nổ (khi mất mạng)
-     * Animation: paddle_explode_1.png ... paddle_explode_8.png
-     * Chạy 1 lần (loop=false)
-     */
-    EXPLODE
+    public boolean shouldLoop() {
+        return shouldLoop;
+    }
 }

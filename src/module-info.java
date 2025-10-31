@@ -1,8 +1,7 @@
-module Arkanoid1 {
+module Arkanoid {
     requires javafx.fxml;
     requires javafx.controls;
-    requires java.desktop;
-
+    requires javafx.media;
+    requires javafx.graphics;
     exports ArkanoidGame;
-    exports Test;
 }
