@@ -15,30 +15,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * CollisionManager - Centralized collision detection and response system.
- *
- * Responsibilities:
- * - Ball vs Wall collisions
- * - Ball vs Paddle collisions (with angle adjustment)
- * - Ball vs Brick collisions
- * - Laser vs Brick collisions
- * - PowerUp vs Paddle collisions
- *
- * Design:
- * - Separates collision logic from GameManager
- * - Uses AABB (Axis-Aligned Bounding Box) for broad phase
- * - Swept collision for accurate detection
- * - Optimized with spatial partitioning (future enhancement)
- * */
+ * Lớp quản lý va chạm (CollisionManager) chịu trách nhiệm phát hiện và xử lý
+ * các tương tác va chạm giữa các thực thể game, bao gồm bóng, thanh đỡ, gạch,
+ * viền tường và tia laser.
+ */
 public class CollisionManager {
-    private int playAreaWidth;
-    private int playAreaHeight;
+    private int playAreaWidth; // Chiều rộng khu vực chơi.
+    private int playAreaHeight; // Chiều cao khu vực chơi.
+    // Góc phản xạ tối đa của bóng khi chạm thanh đỡ, lấy từ hằng số.
     private static final double MAX_BOUNCE_ANGLE = Constants.Paddle.PADDLE_MAX_ANGLE;
 
     /**
-     * Creates collision manager for specified play area.
-     * @param width Play area width
-     * @param height Play area height
+     * Khởi tạo CollisionManager.
+     *
+     * @param width Chiều rộng khu vực chơi.
+     * @param height Chiều cao khu vực chơi.
      */
     public CollisionManager(int width, int height) {
         this.playAreaWidth = width;
@@ -46,20 +37,20 @@ public class CollisionManager {
     }
 
     /**
-     * Checks and handles ball collision with walls.
-     * Reverses velocity and plays SFX on collision.
+     * Kiểm tra và xử lý va chạm của bóng với các biên giới hạn cố định (tường trên, trái, phải).
      *
-     * @param ball Ball to check
-     * @param leftBorder Left boundary (usually 0)
-     * @param rightBorder Right boundary (usually playAreaWidth)
-     * @param topBorder Top boundary (usually 0)
+     * @param ball Đối tượng bóng.
+     * @param leftBorder Tọa độ X của biên trái.
+     * @param rightBorder Tọa độ X của biên phải.
+     * @param topBorder Tọa độ Y của biên trên.
      */
     public void checkBallWallCollisions(Ball ball, double leftBorder, double rightBorder, double topBorder) {
         boolean collided = false;
 
-        // Left wall collision
+        // Kiểm tra va chạm biên trái
         if (ball.getX() <= leftBorder) {
-            ball.setX(leftBorder);
+            ball.setX(leftBorder); // Đặt lại vị trí bóng sát biên.
+            // Đảo hướng vận tốc theo trục X (đảm bảo dx luôn dương).
             ball.setVelocity(new Velocity(
                     Math.abs(ball.getVelocity().getDx()),
                     ball.getVelocity().getDy()
@@ -67,9 +58,10 @@ public class CollisionManager {
             collided = true;
         }
 
-        // Right wall collision
+        // Kiểm tra va chạm biên phải
         if (ball.getX() + ball.getWidth() >= rightBorder) {
-            ball.setX(rightBorder - ball.getWidth());
+            ball.setX(rightBorder - ball.getWidth()); // Đặt lại vị trí bóng sát biên.
+            // Đảo hướng vận tốc theo trục X (đảm bảo dx luôn âm).
             ball.setVelocity(new Velocity(
                     -Math.abs(ball.getVelocity().getDx()),
                     ball.getVelocity().getDy()
@@ -77,9 +69,10 @@ public class CollisionManager {
             collided = true;
         }
 
-        // Top wall collision
+        // Kiểm tra va chạm biên trên
         if (ball.getY() <= topBorder) {
-            ball.setY(topBorder);
+            ball.setY(topBorder); // Đặt lại vị trí bóng sát biên.
+            // Đảo hướng vận tốc theo trục Y (đảm bảo dy luôn dương).
             ball.setVelocity(new Velocity(
                     ball.getVelocity().getDx(),
                     Math.abs(ball.getVelocity().getDy())
@@ -87,115 +80,107 @@ public class CollisionManager {
             collided = true;
         }
 
-        // Play SFX if collision occurred
+        // Logic xử lý SFX va chạm tường sẽ được thêm vào đây
         if (collided) {
-            // AudioManager.playSFX(WALL_HIT) - to be implemented
+
         }
     }
 
     /**
-     * Checks and handles ball collision with paddle.
-     * Adjusts ball angle based on hit position.
-     * Handles catch mode (ball sticks to paddle).
+     * Kiểm tra va chạm của bóng với thanh đỡ (Paddle).
      *
-     * @param ball Ball to check
-     * @param paddle Paddle to check against
-     * @return true if collision occurred
+     * @param ball Đối tượng bóng.
+     * @param paddle Đối tượng thanh đỡ.
+     * @return {@code true} nếu va chạm xảy ra, ngược lại là {@code false}.
      */
     public boolean checkBallPaddleCollision(Ball ball, Paddle paddle) {
-        // Check if bounds intersect
+        // Kiểm tra va chạm AABB đơn giản trước.
         if (!ball.getBounds().intersects(paddle.getBounds())) {
             return false;
         }
 
-        // Calculate hit position on paddle (-1 to 1, where 0 is center)
+        // Tính toán vị trí va chạm trên thanh đỡ.
         double ballCenterX = ball.getCenter().getX();
         double paddleCenterX = paddle.getX() + paddle.getWidth() / 2.0;
         double paddleHalfWidth = paddle.getWidth() / 2.0;
 
+        // hitPosition: tỉ lệ từ -1.0 (cực trái) đến 1.0 (cực phải)
         double hitPosition = (ballCenterX - paddleCenterX) / paddleHalfWidth;
-        hitPosition = Math.max(-1.0, Math.min(1.0, hitPosition)); // Clamp to [-1, 1]
+        // Giới hạn giá trị trong khoảng [-1, 1].
+        hitPosition = Math.max(-1.0, Math.min(1.0, hitPosition));
 
-        // Check if catch mode is enabled
+
+        // Nếu chế độ bắt bóng (Catch Mode) đang bật.
         if (paddle.isCatchModeEnabled()) {
-            // Ball sticks to paddle - handled by GameManager
-            // Just signal collision occurred
-            // AudioManager.playSFX(PADDLE_HIT_CATCH) - to be implemented
             return true;
         }
 
-        // Calculate new angle based on hit position
+        // Tính toán hướng bay mới của bóng dựa trên vị trí va chạm.
         calculateBallAngleFromPaddle(ball, paddle, hitPosition);
-
-        // Push ball above paddle to prevent repeated collisions
+        // Đặt lại vị trí Y của bóng để đảm bảo nó bật lên trên thanh đỡ.
         ball.setY(paddle.getY() - ball.getHeight() - 1);
-
-        // Play paddle hit SFX
-        // AudioManager.playSFX(PADDLE_HIT) - to be implemented
-
         return true;
     }
 
     /**
-     * Adjusts ball velocity based on where it hit the paddle.
-     * Hit at center = straight up
-     * Hit at edges = angled bounce (up to MAX_BOUNCE_ANGLE degrees)
+     * Tính toán góc phản xạ mới của bóng dựa trên vị trí va chạm trên thanh đỡ.
      *
-     * @param ball Ball to adjust
-     * @param paddle Paddle that was hit
-     * @param hitPosition Position on paddle (-1 to 1)
+     * @param ball Đối tượng bóng.
+     * @param paddle Đối tượng thanh đỡ.
+     * @param hitPosition Vị trí va chạm chuẩn hóa [-1, 1].
      */
     private void calculateBallAngleFromPaddle(Ball ball, Paddle paddle, double hitPosition) {
-        // Get current speed (magnitude)
+        // Lấy tốc độ hiện tại của bóng (độ lớn vector vận tốc).
         double speed = Math.hypot(ball.getVelocity().getDx(), ball.getVelocity().getDy());
 
-        // Calculate angle in degrees (-MAX_BOUNCE_ANGLE to +MAX_BOUNCE_ANGLE)
+        // Tính toán góc phản xạ (độ) từ -MAX_BOUNCE_ANGLE đến +MAX_BOUNCE_ANGLE.
         double angle = hitPosition * MAX_BOUNCE_ANGLE;
 
-        // Convert to radians
+        // Chuyển đổi góc sang radian.
         double angleRad = Math.toRadians(angle);
 
-        // Calculate new velocity components
-        // Angle 0 = straight up (dy = -speed, dx = 0)
-        // Positive angle = right, negative angle = left
+        // Tính toán thành phần vận tốc mới (dx, dy).
+        // Góc 0 độ: bắn thẳng lên (dy = -speed, dx = 0).
+        // Góc dương: hướng sang phải, Góc âm: hướng sang trái.
         double dx = speed * Math.sin(angleRad);
-        double dy = -speed * Math.cos(angleRad); // Negative because up is negative Y
+        // dy âm vì hướng lên là hướng âm trong hệ tọa độ JavaFX.
+        double dy = -speed * Math.cos(angleRad);
 
+        // Đặt vận tốc mới cho bóng.
         ball.setVelocity(new Velocity(dx, dy));
     }
 
     /**
-     * Checks ball collisions with all bricks.
-     * Returns list of destroyed bricks for scoring.
+     * Kiểm tra va chạm của bóng với tất cả gạch trong màn chơi.
      *
-     * @param ball Ball to check
-     * @param bricks List of bricks to check against
-     * @return List of bricks that were destroyed
+     * @param ball Đối tượng bóng.
+     * @param bricks Danh sách các gạch cần kiểm tra.
+     * @return Danh sách các gạch đã bị phá hủy trong lần va chạm này (dùng cho tính điểm).
      */
     public List<Brick> checkBallBrickCollisions(Ball ball, List<Brick> bricks) {
         List<Brick> destroyedBricks = new ArrayList<>();
 
         for (Brick brick : bricks) {
+            // Chỉ kiểm tra va chạm với gạch còn sống.
             if (!brick.isAlive()) {
                 continue;
             }
 
-            // Ignore collision for gold bricks (indestructible)
+            // Bỏ qua va chạm cho gạch vàng (không thể phá hủy).
             if (brick.getBrickType() == BrickType.GOLD){
                 ignoreGoldBricksCollision(brick, ball);
                 continue;
             }
 
 
-            // Check collision using Ball's built-in swept collision
+            // Kiểm tra va chạm bằng phương pháp "swept collision" tích hợp của Ball.
             if (ball.checkCollisionWithRect(brick.getBounds())) {
-                // Brick takes damage
+                // Gạch nhận sát thương.
                 brick.takeHit();
 
-                // Play hit SFX
-                // AudioManager.playSFX(BRICK_HIT) - to be implemented
+                // Logic phát SFX chạm gạch
 
-                // If brick was destroyed, add to list
+                // Nếu gạch bị phá hủy, thêm vào danh sách.
                 if (brick.isDestroyed()) {
                     destroyedBricks.add(brick);
                 }
@@ -205,12 +190,19 @@ public class CollisionManager {
         return destroyedBricks;
     }
 
+    /**
+     * Xử lý va chạm giữa bóng và gạch vàng (Gold Bricks),
+     * gạch vàng không bị phá hủy và va chạm như tường.
+     *
+     * @param brick Gạch vàng.
+     * @param ball Đối tượng bóng.
+     */
     private void ignoreGoldBricksCollision(Brick brick, Ball ball) {
-        // Gold bricks are indestructible - collisions are same to walls
+        // Gạch vàng là không thể phá hủy - va chạm tương tự như tường.
         if (brick.getBrickType() == BrickType.GOLD) {
-            // Check AABB intersection
+            // Kiểm tra va chạm AABB.
             if (ball.getBounds().intersects(brick.getBounds())) {
-                // Simple response: reverse velocity based on side hit
+                // Phản hồi đơn giản: đảo hướng vận tốc dựa trên cạnh va chạm.
                 double ballCenterX = ball.getCenter().getX();
                 double ballCenterY = ball.getCenter().getY();
                 double brickCenterX = brick.getX() + brick.getWidth() / 2.0;
@@ -219,53 +211,56 @@ public class CollisionManager {
                 double dx = ballCenterX - brickCenterX;
                 double dy = ballCenterY - brickCenterY;
 
+                // Nếu chênh lệch theo X lớn hơn chênh lệch theo Y -> Va chạm ngang.
                 if (Math.abs(dx) > Math.abs(dy)) {
-                    // Horizontal collision
+                    // Đảo vận tốc X.
                     ball.setVelocity(new Velocity(-ball.getVelocity().getDx(), ball.getVelocity().getDy()));
                 } else {
-                    // Vertical collision
+                    // Va chạm dọc.
+                    // Đảo vận tốc Y.
                     ball.setVelocity(new Velocity(ball.getVelocity().getDx(), -ball.getVelocity().getDy()));
                 }
 
-                // Play wall hit SFX
-                // AudioManager.playSFX(WALL_HIT) - to be implemented
+                // Logic phát SFX va chạm tường
             }
         }
 
     }
+
     /**
-     * Checks laser collisions with bricks.
-     * Each laser can only hit one brick.
+     * Kiểm tra va chạm của tia laser với gạch.
+     * Mỗi tia laser chỉ có thể bắn trúng một gạch.
      *
-     * @param lasers List of active lasers
-     * @param bricks List of bricks
-     * @return Map of laser-brick collision pairs
+     * @param lasers Danh sách các tia laser đang hoạt động.
+     * @param bricks Danh sách các gạch.
+     * @return Map chứa các cặp va chạm laser-gạch (laser: gạch bị trúng).
      */
     public Map<Laser, Brick> checkLaserBrickCollisions(List<Laser> lasers, List<Brick> bricks) {
         Map<Laser, Brick> collisions = new HashMap<>();
 
         for (Laser laser : lasers) {
+            // Chỉ kiểm tra tia laser đang hoạt động.
             if (!laser.isAlive()) {
                 continue;
             }
 
             for (Brick brick : bricks) {
+                // Chỉ kiểm tra gạch còn sống.
                 if (!brick.isAlive()) {
                     continue;
                 }
 
-                // Check AABB intersection
+                // Kiểm tra va chạm AABB.
                 if (laser.getBounds().intersects(brick.getBounds())) {
-                    // Brick takes damage
+                    // Gạch nhận sát thương.
                     brick.takeHit();
 
-                    // Record collision
+                    // Ghi lại cặp va chạm.
                     collisions.put(laser, brick);
 
-                    // Play laser hit SFX
-                    // AudioManager.playSFX(LASER_HIT) - to be implemented
+                    // Logic phát SFX chạm laser
 
-                    // Laser can only hit one brick
+                    // Tia laser chỉ có thể bắn trúng một gạch, nên dừng vòng lặp bricks.
                     break;
                 }
             }
@@ -275,29 +270,29 @@ public class CollisionManager {
     }
 
     /**
-     * Checks powerup collisions with paddle.
-     * Returns list of collected powerups.
+     * Kiểm tra va chạm của vật phẩm bổ trợ (PowerUp) với thanh đỡ.
      *
-     * @param powerUps List of active powerups
-     * @param paddle Player's paddle
-     * @return List of powerups that were collected
+     * @param powerUps Danh sách các vật phẩm đang rơi.
+     * @param paddle Thanh đỡ của người chơi.
+     * @return Danh sách các vật phẩm đã được thu thập.
      */
     public List<PowerUp> checkPowerUpPaddleCollisions(List<PowerUp> powerUps, Paddle paddle) {
         List<PowerUp> collected = new ArrayList<>();
 
+        // Nếu thanh đỡ không tồn tại, trả về danh sách trống.
         if (paddle == null) return collected;
 
         for (PowerUp powerUp : powerUps) {
+            // Chỉ kiểm tra vật phẩm còn sống.
             if (!powerUp.isAlive()) {
                 continue;
             }
 
-            // Use PowerUp's collision check (single source of truth)
+            // Sử dụng kiểm tra va chạm của chính PowerUp (nguyên tắc single source of truth).
             if (powerUp.checkPaddleCollision(paddle)) {
                 collected.add(powerUp);
 
-                // Play collection SFX
-                // AudioManager.playSFX(POWERUP_COLLECT) - to be implemented
+                // Logic phát SFX thu thập vật phẩm
             }
         }
 
@@ -305,7 +300,10 @@ public class CollisionManager {
     }
 
     /**
-     * Updates play area dimensions (useful for resolution changes).
+     * Cập nhật kích thước khu vực chơi (hữu ích cho việc thay đổi độ phân giải).
+     *
+     * @param width Chiều rộng mới.
+     * @param height Chiều cao mới.
      */
     public void setPlayAreaSize(int width, int height) {
         this.playAreaWidth = width;
