@@ -23,14 +23,19 @@ public class Button {
     // Hành động chạy khi button được click
     private Runnable onClick;
 
-    // Màu sắc cố định cho các trạng thái
-    private static final Color NORMAL_COLOR = Color.rgb(100, 100, 100);
-    private static final Color HOVER_COLOR = Color.rgb(150, 150, 200);
-    private static final Color SELECTED_COLOR = Color.rgb(200, 200, 255);
+    // Màu sắc cố định cho các trạng thái - Thiết kế mới đẹp hơn
+    private static final Color NORMAL_BG_COLOR = Color.rgb(40, 40, 60, 0.85);      // Nền tối trong suốt
+    private static final Color HOVER_BG_COLOR = Color.rgb(60, 60, 100, 0.9);       // Nền sáng hơn khi hover
+    private static final Color SELECTED_BG_COLOR = Color.rgb(80, 80, 140, 0.95);   // Nền sáng nhất khi selected
+    
+    private static final Color NORMAL_BORDER = Color.rgb(100, 150, 200);           // Viền xanh dương nhạt
+    private static final Color HOVER_BORDER = Color.rgb(150, 200, 255);            // Viền sáng hơn khi hover
+    private static final Color SELECTED_BORDER = Color.web("#FFD700");             // Viền vàng khi selected
+    
     private static final Color TEXT_COLOR = Color.WHITE;
-    private static final Color BORDER_COLOR = Color.WHITE;
 
-    private static final double BORDER_WIDTH = 2.0;
+    private static final double BORDER_WIDTH = 3.0;                                // Viền dày hơn
+    private static final double CORNER_RADIUS = 8.0;                               // Bo góc 8px
 
     private Font font;
 
@@ -56,29 +61,46 @@ public class Button {
     }
 
     /**
-     * Render (vẽ) button lên canvas.
+     * Render (vẽ) button lên canvas với thiết kế bo góc đẹp hơn.
      * @param gc GraphicsContext để vẽ
      */
     public void render(GraphicsContext gc) {
         Color bgColor;
+        Color borderColor;
 
-        // Xác định màu nền dựa trên trạng thái (Ưu tiên SELECTED > HOVER > NORMAL)
+        // Xác định màu nền và viền dựa trên trạng thái (Ưu tiên SELECTED > HOVER > NORMAL)
         if (isSelected) {
-            bgColor = SELECTED_COLOR;
+            bgColor = SELECTED_BG_COLOR;
+            borderColor = SELECTED_BORDER;
         } else if (isHovered) {
-            bgColor = HOVER_COLOR;
+            bgColor = HOVER_BG_COLOR;
+            borderColor = HOVER_BORDER;
         } else {
-            bgColor = NORMAL_COLOR;
+            bgColor = NORMAL_BG_COLOR;
+            borderColor = NORMAL_BORDER;
         }
 
-        // Vẽ nền button
-        gc.setFill(bgColor);
-        gc.fillRect(x, y, width, height);
+        // Vẽ shadow/glow effect nhẹ phía dưới button
+        if (isSelected || isHovered) {
+            gc.setFill(Color.rgb(100, 150, 255, 0.15));
+            gc.fillRoundRect(x - 2, y + 2, width + 4, height + 4, CORNER_RADIUS + 2, CORNER_RADIUS + 2);
+        }
 
-        // Vẽ viền
-        gc.setStroke(BORDER_COLOR);
+        // Vẽ nền button với bo góc
+        gc.setFill(bgColor);
+        gc.fillRoundRect(x, y, width, height, CORNER_RADIUS, CORNER_RADIUS);
+
+        // Vẽ viền với bo góc
+        gc.setStroke(borderColor);
         gc.setLineWidth(BORDER_WIDTH);
-        gc.strokeRect(x, y, width, height);
+        gc.strokeRoundRect(x, y, width, height, CORNER_RADIUS, CORNER_RADIUS);
+
+        // Vẽ inner glow khi selected
+        if (isSelected) {
+            gc.setStroke(Color.rgb(255, 215, 0, 0.3));
+            gc.setLineWidth(1.5);
+            gc.strokeRoundRect(x + 3, y + 3, width - 6, height - 6, CORNER_RADIUS - 2, CORNER_RADIUS - 2);
+        }
 
         // Thiết lập font và vẽ text
         gc.setFill(TEXT_COLOR);

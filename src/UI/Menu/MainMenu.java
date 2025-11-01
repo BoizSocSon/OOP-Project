@@ -17,6 +17,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.Pane;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,9 +41,14 @@ public class MainMenu implements Screen {
     private List<PowerUpDisplay> rightPowerUps; // Danh sách hiển thị PowerUp bên phải (trang trí chuyển động).
     private PowerUpDisplay middlePowerUp; // PowerUp hiển thị ở giữa (nếu cần).
     private Image logo; // Logo game được hiển thị ở trên cùng.
+    
+    // TextField nhập tên người chơi
+    private TextField playerNameField;
+    private Pane parentPane; // Để quản lý TextField
 
     // Trạng thái lựa chọn
     private int selectedButtonIndex; // Chỉ số (index) của nút đang được chọn bằng phím điều hướng.
+    private boolean textFieldFocused = false; // Trạng thái focus của TextField
 
     // Các hằng số layout
     private static final double WINDOW_WIDTH = Constants.Window.WINDOW_WIDTH;
@@ -55,6 +62,27 @@ public class MainMenu implements Screen {
     private static final double POWERUP_DISPLAY_OFFSET_X = 60; // Khoảng cách từ trung tâm đến vị trí PowerUp.
     private static final double LOGO_WIDTH = Constants.UISprites.LOGO_WIDTH; // 400x145
     private static final double LOGO_HEIGHT = Constants.UISprites.LOGO_HEIGHT;
+    
+    // Kích thước TextField - Thiết kế mới
+    private static final double TEXTFIELD_WIDTH = 400;           // Chiều rộng khung rộng hơn
+    private static final double TEXTFIELD_HEIGHT = 50;           // Chiều cao khung cao hơn
+    private static final double TEXTFIELD_Y_OFFSET = 70;         // Khoảng cách từ logo xuống
+    
+    // Font chữ trong TextField - Sử dụng custom font
+    private static final int TEXTFIELD_FONT_SIZE = 22;           // Cỡ chữ
+    private static final int TEXTFIELD_PROMPT_FONT_SIZE = 18;    // Cỡ chữ prompt nhỏ hơn
+    
+    // Màu sắc TextField - Thiết kế mới đẹp hơn
+    private static final String TEXTFIELD_TEXT_COLOR = "#00FFFF";         // Màu cyan sáng cho text
+    private static final String TEXTFIELD_BG_COLOR = "rgba(10, 10, 40, 0.85)"; // Nền tối trong suốt
+    private static final String TEXTFIELD_BORDER_COLOR = "#00BFFF";       // Viền xanh dương sáng
+    private static final int TEXTFIELD_BORDER_WIDTH = 3;                  // Viền dày hơn
+    private static final String TEXTFIELD_PROMPT_COLOR = "rgba(150, 150, 200, 0.8)"; // Màu prompt nhạt hơn
+    private static final String TEXTFIELD_FOCUS_BORDER_COLOR = "#FFD700"; // Màu viền khi focus (vàng)
+    private static final String TEXTFIELD_FOCUS_GLOW = "0 0 10px #FFD700, 0 0 20px #FFD700"; // Hiệu ứng glow
+    
+    // Giới hạn
+    private static final int TEXTFIELD_MAX_LENGTH = 15;          // Số ký tự tối đa
 
     // Trạng thái màn hình con
     private boolean showingHighScore = false; // Cờ kiểm tra đang hiển thị màn hình điểm cao.
@@ -66,10 +94,12 @@ public class MainMenu implements Screen {
      * Constructor.
      * @param stateManager StateManager để chuyển trạng thái game.
      * @param sprites SpriteProvider để lấy tài nguyên hình ảnh.
+     * @param parentPane Pane chứa canvas để thêm TextField.
      */
-    public MainMenu(StateManager stateManager, SpriteProvider sprites) {
+    public MainMenu(StateManager stateManager, SpriteProvider sprites, Pane parentPane) {
         this.stateManager = stateManager;
         this.sprites = sprites;
+        this.parentPane = parentPane;
         // Khởi tạo màn hình điểm cao.
         this.highScoreDisplay = new HighScoreDisplay(sprites);
 
@@ -180,7 +210,7 @@ public class MainMenu implements Screen {
                 POWERUP_SIZE_WIDTH, POWERUP_SIZE_HEIGHT, sprites
         );
 
-        // Tải font UI
+        // Tải font UI TRƯỚC KHI khởi tạo TextField
         try {
             // Chỉ load font một lần, lưu tên font family
             Font baseFont = AssetLoader.loadFont("optimus.otf", 24);
@@ -189,6 +219,95 @@ public class MainMenu implements Screen {
             // Sử dụng font mặc định nếu không tải được
             fontFamily = "Monospaced";
             System.out.println("MainMenu: Failed to load custom font, using default.");
+        }
+
+        // Khởi tạo TextField để nhập tên người chơi (SAU KHI load font)
+        initializePlayerNameField();
+    }
+
+    /**
+     * Khởi tạo TextField để người chơi nhập tên.
+     * Sử dụng custom font và thiết kế đẹp hơn.
+     */
+    private void initializePlayerNameField() {
+        playerNameField = new TextField();
+        playerNameField.setPromptText("Enter Your Name");
+        playerNameField.setMaxWidth(TEXTFIELD_WIDTH);
+        playerNameField.setPrefWidth(TEXTFIELD_WIDTH);
+        playerNameField.setPrefHeight(TEXTFIELD_HEIGHT);
+        
+        // Tính toán vị trí: căn giữa theo chiều ngang, dưới logo một khoảng TEXTFIELD_Y_OFFSET
+        double logoY = 100;
+        double fieldX = (WINDOW_WIDTH - TEXTFIELD_WIDTH) / 2;
+        double fieldY = logoY + TEXTFIELD_Y_OFFSET;
+        
+        playerNameField.setLayoutX(fieldX);
+        playerNameField.setLayoutY(fieldY);
+        
+        // Giới hạn độ dài tên
+        playerNameField.setTextFormatter(new javafx.scene.control.TextFormatter<>(change -> {
+            if (change.getControlNewText().length() > TEXTFIELD_MAX_LENGTH) {
+                return null;
+            }
+            return change;
+        }));
+        
+        // Load font cho TextField (cả text và prompt text)
+        Font textFieldFont = AssetLoader.loadFont("optimus.otf", TEXTFIELD_FONT_SIZE);
+        playerNameField.setFont(textFieldFont);
+        
+        // Áp dụng style (KHÔNG set font qua CSS vì đã set qua setFont())
+        String baseStyle = 
+            "-fx-text-fill: " + TEXTFIELD_TEXT_COLOR + ";" +
+            "-fx-background-color: " + TEXTFIELD_BG_COLOR + ";" +
+            "-fx-border-color: " + TEXTFIELD_BORDER_COLOR + ";" +
+            "-fx-border-width: " + TEXTFIELD_BORDER_WIDTH + "px;" +
+            "-fx-border-radius: 8px;" +
+            "-fx-background-radius: 8px;" +
+            "-fx-prompt-text-fill: " + TEXTFIELD_PROMPT_COLOR + ";" +
+            "-fx-alignment: center;";
+        
+        playerNameField.setStyle(baseStyle);
+        
+        // Xử lý sự kiện khi focus vào/ra TextField
+        playerNameField.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+            textFieldFocused = isNowFocused;
+            if (isNowFocused) {
+                // Khi focus: thay đổi viền và thêm hiệu ứng glow
+                playerNameField.setStyle(baseStyle + 
+                    "-fx-border-color: " + TEXTFIELD_FOCUS_BORDER_COLOR + ";" +
+                    "-fx-effect: dropshadow(gaussian, " + TEXTFIELD_FOCUS_BORDER_COLOR + ", 10, 0.7, 0, 0);");
+            } else {
+                // Khi mất focus: trở về style ban đầu
+                playerNameField.setStyle(baseStyle);
+            }
+        });
+        
+        // Xử lý phím bấm trong TextField
+        playerNameField.setOnKeyPressed(event -> {
+            KeyCode code = event.getCode();
+            // Chỉ cho phép ESC thoát khỏi TextField, các phím khác được xử lý bình thường
+            if (code == KeyCode.ESCAPE) {
+                playerNameField.getParent().requestFocus(); // Bỏ focus khỏi TextField
+                event.consume();
+            }
+            // KHÔNG consume các phím khác như SPACE, ENTER để TextField có thể xử lý bình thường
+        });
+        
+        // Xử lý click chuột để focus
+        playerNameField.setOnMouseClicked(event -> {
+            if (!textFieldFocused) {
+                playerNameField.requestFocus();
+            }
+            event.consume();
+        });
+        
+        // Ban đầu ẩn TextField
+        playerNameField.setVisible(false);
+        
+        // Thêm vào pane
+        if (parentPane != null) {
+            parentPane.getChildren().add(playerNameField);
         }
     }
 
@@ -201,15 +320,20 @@ public class MainMenu implements Screen {
     public void render(GraphicsContext gc) {
         // Kiểm tra if: Nếu đang hiển thị màn hình điểm cao, vẽ màn hình con và dừng.
         if (showingHighScore) {
+            hidePlayerNameField(); // Ẩn TextField khi ở màn hình con
             highScoreDisplay.render(gc);
             return;
         }
 
         // Kiểm tra if: Nếu đang hiển thị màn hình cài đặt, vẽ màn hình con và dừng.
         if (showingSettings) {
+            hidePlayerNameField(); // Ẩn TextField khi ở màn hình con
             settingsScreen.render(gc);
             return;
         }
+
+        // Hiển thị TextField khi ở menu chính
+        showPlayerNameField();
 
         // --- Bắt đầu vẽ Menu chính ---
 
@@ -295,15 +419,20 @@ public class MainMenu implements Screen {
     public void update(long deltaTime) {
         // Kiểm tra if: Nếu đang hiển thị màn hình con, cập nhật màn hình con và dừng.
         if (showingHighScore) {
+            hidePlayerNameField(); // Ẩn TextField
             highScoreDisplay.update(deltaTime);
             return;
         }
 
         // Kiểm tra if: Nếu đang hiển thị màn hình con, cập nhật màn hình con và dừng.
         if (showingSettings) {
+            hidePlayerNameField(); // Ẩn TextField
             settingsScreen.update(deltaTime);
             return;
         }
+
+        // Hiển thị TextField khi ở menu chính
+        showPlayerNameField();
 
         // Cập nhật animation PowerUp trang trí
         long currentTime = System.currentTimeMillis();
@@ -338,7 +467,21 @@ public class MainMenu implements Screen {
             return;
         }
 
-        // --- Xử lý điều hướng Menu chính ---
+        // --- Kiểm tra nếu TextField đang được focus ---
+        // Nếu TextField đang focus, CHỈ xử lý phím ESC để bỏ focus
+        // Các phím khác sẽ được TextField tự xử lý
+        if (textFieldFocused) {
+            if (keyCode == KeyCode.ESCAPE) {
+                // Bỏ focus khỏi TextField
+                if (parentPane != null) {
+                    parentPane.requestFocus();
+                }
+            }
+            // Không xử lý các phím khác khi TextField đang focus
+            return;
+        }
+
+        // --- Xử lý điều hướng Menu chính (chỉ khi TextField KHÔNG focus) ---
         switch (keyCode) {
             case UP:
                 navigateUp(); // Phím Mũi tên Lên: chọn nút trước đó
@@ -387,7 +530,29 @@ public class MainMenu implements Screen {
         double mouseX = event.getX();
         double mouseY = event.getY();
 
-        // Kiểm tra và kích hoạt nút bấm khi nhấp chuột
+        // Kiểm tra nếu click vào TextField
+        if (playerNameField != null && playerNameField.isVisible()) {
+            double fieldX = playerNameField.getLayoutX();
+            double fieldY = playerNameField.getLayoutY();
+            double fieldWidth = playerNameField.getWidth();
+            double fieldHeight = playerNameField.getHeight();
+            
+            boolean clickedOnTextField = mouseX >= fieldX && mouseX <= fieldX + fieldWidth &&
+                                        mouseY >= fieldY && mouseY <= fieldY + fieldHeight;
+            
+            if (clickedOnTextField) {
+                // Click vào TextField: focus vào TextField
+                playerNameField.requestFocus();
+                return; // Không xử lý buttons
+            } else {
+                // Click ra ngoài TextField: bỏ focus
+                if (parentPane != null) {
+                    parentPane.requestFocus();
+                }
+            }
+        }
+
+        // Kiểm tra và kích hoạt nút bấm khi nhấp chuột (chỉ khi không click vào TextField)
         for (Button button : buttons) {
             // Kiểm tra if: Nếu chuột nằm trong phạm vi nút
             if (button.contains(mouseX, mouseY)) {
@@ -443,6 +608,9 @@ public class MainMenu implements Screen {
         showingSettings = false;
         selectedButtonIndex = 0;
         updateButtonSelection(); // Đảm bảo nút đầu tiên được chọn
+        
+        // Hiển thị lại TextField
+        showPlayerNameField();
     }
 
     /**
@@ -450,7 +618,37 @@ public class MainMenu implements Screen {
      */
     @Override
     public void onExit() {
-        // Dọn dẹp tài nguyên hoặc dừng nhạc nền nếu cần thiết.
+        // Ẩn TextField khi thoát menu
+        hidePlayerNameField();
+    }
+    
+    /**
+     * Hiển thị TextField nhập tên.
+     */
+    private void showPlayerNameField() {
+        if (playerNameField != null) {
+            playerNameField.setVisible(true);
+        }
+    }
+    
+    /**
+     * Ẩn TextField nhập tên.
+     */
+    private void hidePlayerNameField() {
+        if (playerNameField != null) {
+            playerNameField.setVisible(false);
+        }
+    }
+    
+    /**
+     * Lấy tên người chơi đã nhập.
+     * @return Tên người chơi hoặc "PLAYER" nếu chưa nhập.
+     */
+    public String getPlayerName() {
+        if (playerNameField != null && !playerNameField.getText().trim().isEmpty()) {
+            return playerNameField.getText().trim().toUpperCase();
+        }
+        return "PLAYER";
     }
 
     /**

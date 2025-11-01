@@ -90,13 +90,15 @@ public class ArkanoidApp extends Application {
         gameManager = new GameManager();
         highScoreManager = new HighScoreManager();
 
-        // Khởi tạo các màn hình UI
-        mainMenu = new MainMenu(gameManager.getStateManager(), sprites);
+        // Tạo Pane root trước
+        Pane root = new Pane(canvas);
+
+        // Khởi tạo các màn hình UI (truyền root cho MainMenu)
+        mainMenu = new MainMenu(gameManager.getStateManager(), sprites, root);
         pauseScreen = new PauseScreen(sprites);
         gameOverScreen = new GameOverScreen(sprites, highScoreManager);
         winScreen = new WinScreen(sprites, highScoreManager);
 
-        Pane root = new Pane(canvas);
         scene = new Scene(root);
 
         // ====== Xử lý Input Keyboard ======
@@ -282,17 +284,22 @@ public class ArkanoidApp extends Application {
                 mainMenu.onEnter();
                 break;
 
+            case PLAYING:
+                // Lưu tên người chơi khi bắt đầu game
+                String playerName = mainMenu.getPlayerName();
+                gameManager.setPlayerName(playerName);
+                break;
+
             case GAME_OVER:
             case WIN:
                 // Logic chung cho GAME_OVER và WIN
                 int finalScore = gameManager.getScore();
                 int currentRound = gameManager.getRoundsManager().getCurrentRoundNumber();
+                String currentPlayerName = gameManager.getPlayerName();
 
                 // Kiểm tra và thêm vào High Score
                 if (highScoreManager.isHighScore(finalScore)) {
-                    // TODO: Hiển thị dialog nhập tên người chơi
-                    String playerName = "PLAYER"; // Tạm thời dùng tên mặc định
-                    highScoreManager.addScore(playerName, finalScore, LocalDate.now());
+                    highScoreManager.addScore(currentPlayerName, finalScore, LocalDate.now());
                 }
 
                 if (to == GameState.GAME_OVER) {

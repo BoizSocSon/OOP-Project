@@ -36,6 +36,7 @@ public class GameManager {
     private int width;
     private int height;
     private int lives;
+    private String playerName; // Tên người chơi
 
     /**
      * Khởi tạo GameManager, thiết lập kích thước cửa sổ và các thành phần quản lý.
@@ -238,6 +239,12 @@ public class GameManager {
             if (roundsManager.hasNextRound()) {
                 stateManager.setState(GameState.LEVEL_COMPLETE); // Đặt trạng thái qua màn
 
+                // Cộng điểm thưởng hoàn thành màn chơi
+                scoreManager.addRoundCompleteScore();
+                
+                // Cộng điểm thưởng theo số mạng còn lại
+                scoreManager.addLifeBonusScore(lives);
+
                 // Dọn dẹp tất cả vật phẩm đang rơi khi chuyển màn
                 powerUpManager.clearAllPowerUps();
 
@@ -250,6 +257,12 @@ public class GameManager {
                 resetBall();
             } else {
                 // Đã hoàn thành tất cả các vòng - THẮNG!
+                // Cộng điểm thưởng hoàn thành màn chơi cuối cùng
+                scoreManager.addRoundCompleteScore();
+                
+                // Cộng điểm thưởng theo số mạng còn lại
+                scoreManager.addLifeBonusScore(lives);
+                
                 // Dọn dẹp tất cả vật phẩm đang rơi khi thắng
                 powerUpManager.clearAllPowerUps();
                 stateManager.setState(GameState.WIN);
@@ -594,6 +607,12 @@ public class GameManager {
      */
     public boolean warpToNextLevel() {
         if (roundsManager.hasNextRound()) {
+            // Cộng điểm thưởng hoàn thành màn chơi
+            scoreManager.addRoundCompleteScore();
+            
+            // Cộng điểm thưởng theo số mạng còn lại
+            scoreManager.addLifeBonusScore(lives);
+            
             // Dọn dẹp tất cả vật phẩm đang rơi khi chuyển màn
             powerUpManager.clearAllPowerUps();
 
@@ -604,6 +623,12 @@ public class GameManager {
             return true;
         } else {
             // Đã ở màn cuối cùng
+            // Cộng điểm thưởng hoàn thành màn chơi cuối cùng
+            scoreManager.addRoundCompleteScore();
+            
+            // Cộng điểm thưởng theo số mạng còn lại
+            scoreManager.addLifeBonusScore(lives);
+            
             // Dọn dẹp tất cả vật phẩm đang rơi khi thắng
             powerUpManager.clearAllPowerUps();
             stateManager.setState(GameState.WIN); // Chuyển sang trạng thái Thắng
@@ -696,4 +721,19 @@ public class GameManager {
         return false;
     }
 
+    /**
+     * Đặt tên người chơi.
+     * @param playerName Tên người chơi.
+     */
+    public void setPlayerName(String playerName) {
+        this.playerName = playerName;
+    }
+
+    /**
+     * Lấy tên người chơi.
+     * @return Tên người chơi.
+     */
+    public String getPlayerName() {
+        return playerName != null ? playerName : "PLAYER";
+    }
 }

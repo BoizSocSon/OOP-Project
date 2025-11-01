@@ -182,29 +182,60 @@ public class SettingsScreen implements Screen {
     }
 
     /**
-     * Vẽ thanh volume bar (biểu thị mức âm lượng) với nền và phần tô đầy.
+     * Vẽ thanh volume bar (biểu thị mức âm lượng) với thiết kế đẹp, bo góc và hiệu ứng gradient.
      *
      * @param gc GraphicsContext để vẽ.
      */
     private void drawVolumeBar(GraphicsContext gc) {
-        double barWidth = 400;
-        double barHeight = 20;
+        double barWidth = 500;              // Rộng hơn
+        double barHeight = 30;              // Cao hơn
         double barX = (WINDOW_WIDTH - barWidth) / 2;
-        double barY = 330;
+        double barY = 320;
+        double cornerRadius = 8;            // Bo góc
 
-        // Vẽ phần nền (track) của thanh bar (màu xám tối)
-        gc.setFill(Color.rgb(80, 80, 80));
-        gc.fillRect(barX, barY, barWidth, barHeight);
+        // Vẽ shadow/glow effect phía dưới thanh bar
+        gc.setFill(Color.rgb(0, 150, 255, 0.1));
+        gc.fillRoundRect(barX - 3, barY + 3, barWidth + 6, barHeight + 6, cornerRadius + 3, cornerRadius + 3);
+
+        // Vẽ phần nền (track) của thanh bar với màu tối và bo góc
+        gc.setFill(Color.rgb(30, 30, 50, 0.9));
+        gc.fillRoundRect(barX, barY, barWidth, barHeight, cornerRadius, cornerRadius);
 
         // Vẽ phần tô đầy dựa trên mức âm lượng hiện tại
         double fillWidth = barWidth * audioManager.getVolume();
-        gc.setFill(Color.rgb(100, 200, 100)); // Màu xanh lá cây sáng
-        gc.fillRect(barX, barY, fillWidth, barHeight);
+        if (fillWidth > 0) {
+            // Tạo gradient từ xanh lá sang xanh dương
+            double volumeRatio = audioManager.getVolume();
+            Color fillColor;
+            
+            if (volumeRatio < 0.33) {
+                // Âm lượng thấp: Xanh lá nhạt
+                fillColor = Color.rgb(100, 200, 100, 0.9);
+            } else if (volumeRatio < 0.66) {
+                // Âm lượng trung bình: Xanh dương
+                fillColor = Color.rgb(100, 180, 220, 0.9);
+            } else {
+                // Âm lượng cao: Xanh dương sáng
+                fillColor = Color.rgb(80, 150, 255, 0.9);
+            }
+            
+            gc.setFill(fillColor);
+            gc.fillRoundRect(barX, barY, fillWidth, barHeight, cornerRadius, cornerRadius);
+            
+            // Vẽ highlight bên trong phần fill
+            gc.setFill(Color.rgb(255, 255, 255, 0.2));
+            gc.fillRoundRect(barX + 2, barY + 2, Math.max(0, fillWidth - 4), barHeight / 2 - 2, cornerRadius - 2, cornerRadius - 2);
+        }
 
-        // Vẽ viền thanh bar (màu trắng)
-        gc.setStroke(Color.WHITE);
-        gc.setLineWidth(2);
-        gc.strokeRect(barX, barY, barWidth, barHeight);
+        // Vẽ viền thanh bar với màu sáng
+        gc.setStroke(Color.rgb(100, 150, 200));
+        gc.setLineWidth(3);
+        gc.strokeRoundRect(barX, barY, barWidth, barHeight, cornerRadius, cornerRadius);
+        
+        // Vẽ inner border nhẹ
+        gc.setStroke(Color.rgb(150, 180, 220, 0.5));
+        gc.setLineWidth(1.5);
+        gc.strokeRoundRect(barX + 2, barY + 2, barWidth - 4, barHeight - 4, cornerRadius - 1, cornerRadius - 1);
     }
 
     /**
