@@ -5,55 +5,54 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 
 /**
- * Interface cơ bản cho tất cả các màn hình UI trong game.
- * Mỗi màn hình (Menu, Pause, GameOver, Win) sẽ implement interface này.
+ * Giao diện đại diện cho một màn hình hoặc trạng thái (state) trong trò chơi.
+ * Mọi màn hình (ví dụ: Menu, GamePlay, GameOver) cần triển khai giao diện này
+ * để xử lý việc render, cập nhật logic và tương tác người dùng.
  */
 public interface Screen {
     /**
-     * Render màn hình lên GraphicsContext.
-     * @param gc GraphicsContext để vẽ
+     * Vẽ nội dung của màn hình lên GraphicsContext.
+     * @param gc Context đồ họa để vẽ.
      */
     void render(GraphicsContext gc);
 
     /**
-     * Xử lý sự kiện phím được nhấn.
-     * @param keyCode KeyCode của phím được nhấn
+     * Xử lý sự kiện khi một phím được nhấn xuống.
+     * @param keyCode Mã phím được nhấn.
      */
     void handleKeyPressed(KeyCode keyCode);
 
     /**
-     * Xử lý sự kiện phím được thả.
-     * @param keyCode KeyCode của phím được thả
+     * Xử lý sự kiện khi một phím được nhả ra.
+     * @param keyCode Mã phím được nhả.
      */
     void handleKeyReleased(KeyCode keyCode);
 
     /**
-     * Xử lý sự kiện chuột được nhấn.
-     * @param event MouseEvent chứa thông tin chuột
+     * Xử lý sự kiện click chuột.
+     * @param event Chi tiết sự kiện chuột.
      */
     void handleMouseClicked(MouseEvent event);
 
     /**
-     * Xử lý sự kiện chuột di chuyển.
-     * @param event MouseEvent chứa thông tin chuột
+     * Xử lý sự kiện di chuyển chuột.
+     * @param event Chi tiết sự kiện chuột.
      */
     void handleMouseMoved(MouseEvent event);
 
     /**
-     * Update logic của màn hình (animations, timers, etc.).
-     * @param deltaTime Thời gian trôi qua kể từ frame trước (ms)
+     * Cập nhật logic màn hình theo thời gian.
+     * @param deltaTime Thời gian đã trôi qua kể từ lần cập nhật trước.
      */
     void update(long deltaTime);
 
     /**
-     * Được gọi khi màn hình được kích hoạt.
-     * Sử dụng để khởi tạo hoặc reset trạng thái.
+     * Được gọi khi màn hình được chuyển đến (bắt đầu hoạt động).
      */
     void onEnter();
 
     /**
-     * Được gọi khi màn hình bị vô hiệu hóa.
-     * Sử dụng để cleanup resources nếu cần.
+     * Được gọi khi màn hình bị rời đi (dừng hoạt động).
      */
     void onExit();
 }
