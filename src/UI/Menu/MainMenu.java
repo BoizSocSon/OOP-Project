@@ -18,106 +18,120 @@ import javafx.scene.text.Font;
 import java.util.ArrayList;
 import java.util.List;
 
+
 /**
- * Màn hình Menu chính của game.
- * Hiển thị logo, buttons, và preview PowerUps.
+ * Lớp màn hình Menu chính (Main Menu).
+ * Chịu trách nhiệm hiển thị các tùy chọn chính của game (Bắt đầu, Điểm cao, Cài đặt, Thoát),
+ * xử lý tương tác của người dùng và chuyển đổi trạng thái game.
  */
 public class MainMenu implements Screen {
-    private final StateManager stateManager;
-    private final SpriteProvider sprites;
-    private final HighScoreDisplay highScoreDisplay;
-    private final SettingsScreen settingsScreen;
+    private final StateManager stateManager; // Quản lý trạng thái game, dùng để chuyển từ MENU sang PLAYING.
+    private final SpriteProvider sprites; // Nguồn cung cấp sprite (hình ảnh) cho các thành phần UI.
+    private final HighScoreDisplay highScoreDisplay; // Màn hình hiển thị điểm cao (màn hình con).
+    private final SettingsScreen settingsScreen; // Màn hình cài đặt (màn hình con).
 
-    // UI Components
-    private List<Button> buttons;
-    private List<PowerUpDisplay> leftPowerUps;
-    private List<PowerUpDisplay> rightPowerUps;
-    private Image logo;
+    // Các thành phần UI
+    private List<Button> buttons; // Danh sách các nút bấm chính trong menu.
+    private List<PowerUpDisplay> leftPowerUps; // Danh sách hiển thị PowerUp bên trái (trang trí chuyển động).
+    private List<PowerUpDisplay> rightPowerUps; // Danh sách hiển thị PowerUp bên phải (trang trí chuyển động).
+    private Image logo; // Logo game được hiển thị ở trên cùng.
 
-    // Selection state
-    private int selectedButtonIndex;
+    // Trạng thái lựa chọn
+    private int selectedButtonIndex; // Chỉ số (index) của nút đang được chọn bằng phím điều hướng.
 
-    // Layout constants
+    // Các hằng số layout
     private static final double WINDOW_WIDTH = Constants.Window.WINDOW_WIDTH;
     private static final double WINDOW_HEIGHT = Constants.Window.WINDOW_HEIGHT;
     private static final double BUTTON_WIDTH = 200;
     private static final double BUTTON_HEIGHT = 50;
-    private static final double BUTTON_SPACING = 20;
-    private static final double POWERUP_SIZE = 60;
+    private static final double BUTTON_SPACING = 20; // Khoảng cách giữa các nút.
+    private static final double POWERUP_SIZE = 60; // Kích thước hiển thị PowerUp trang trí.
     private static final double LOGO_WIDTH = Constants.UISprites.LOGO_WIDTH; // 400x145
     private static final double LOGO_HEIGHT = Constants.UISprites.LOGO_HEIGHT;
 
-    // State
-    private boolean showingHighScore = false;
-    private boolean showingSettings = false;
+    // Trạng thái màn hình con
+    private boolean showingHighScore = false; // Cờ kiểm tra đang hiển thị màn hình điểm cao.
+    private boolean showingSettings = false; // Cờ kiểm tra đang hiển thị màn hình cài đặt.
 
     /**
      * Constructor.
-     * @param stateManager StateManager để chuyển state
-     * @param sprites SpriteProvider để lấy sprites
+     * @param stateManager StateManager để chuyển trạng thái game.
+     * @param sprites SpriteProvider để lấy tài nguyên hình ảnh.
      */
     public MainMenu(StateManager stateManager, SpriteProvider sprites) {
         this.stateManager = stateManager;
         this.sprites = sprites;
+        // Khởi tạo màn hình điểm cao.
         this.highScoreDisplay = new HighScoreDisplay(sprites);
+
+        // Khởi tạo màn hình cài đặt, truyền callback onBackFromSettings để khi ESC sẽ quay lại menu chính.
         this.settingsScreen = new SettingsScreen(stateManager.getAudioManager(), sprites, this::onBackFromSettings);
+
+        // Khởi tạo danh sách trống cho các thành phần UI.
         this.buttons = new ArrayList<>();
         this.leftPowerUps = new ArrayList<>();
         this.rightPowerUps = new ArrayList<>();
         this.selectedButtonIndex = 0;
 
-        initializeComponents();
+        initializeComponents(); // Thiết lập các thành phần UI (buttons và trang trí).
     }
 
     /**
-     * Khởi tạo các UI components.
+     * Khởi tạo các thành phần UI (buttons, power-up displays).
      */
     private void initializeComponents() {
-        // Load logo
-        logo = sprites.get("logo.png"); // Giả sử có logo.png
+        // Tải logo từ SpriteProvider
+        logo = sprites.get("logo.png");
 
-        // Tính toán vị trí center cho buttons
+        // Tính toán vị trí center cho khối buttons
         double centerX = WINDOW_WIDTH / 2;
         double centerY = WINDOW_HEIGHT / 2;
-        double buttonX = centerX - BUTTON_WIDTH / 2;
-        double buttonY = centerY - (BUTTON_HEIGHT * 4 + BUTTON_SPACING * 3) / 2; // 4 buttons now
+        double buttonX = centerX - BUTTON_WIDTH / 2; // Vị trí X bắt đầu của nút (căn giữa)
 
-        // Tạo buttons
+        // Tính vị trí Y bắt đầu để khối 4 nút được căn giữa theo chiều dọc.
+        double buttonY = centerY - (BUTTON_HEIGHT * 4 + BUTTON_SPACING * 3) / 2;
+
+        // --- Tạo buttons và định nghĩa hành động (callbacks) ---
+        // Nút START GAME
         buttons.add(new Button(
                 buttonX, buttonY,
                 BUTTON_WIDTH, BUTTON_HEIGHT,
                 "START GAME",
-                this::onStartGame
+                this::onStartGame // Callback: chuyển state sang PLAYING
         ));
 
+        // Nút HIGH SCORE
         buttons.add(new Button(
                 buttonX, buttonY + BUTTON_HEIGHT + BUTTON_SPACING,
                 BUTTON_WIDTH, BUTTON_HEIGHT,
                 "HIGH SCORE",
-                this::onHighScore
+                this::onHighScore // Callback: bật cờ hiển thị màn hình điểm cao
         ));
 
+        // Nút SETTINGS
         buttons.add(new Button(
                 buttonX, buttonY + (BUTTON_HEIGHT + BUTTON_SPACING) * 2,
                 BUTTON_WIDTH, BUTTON_HEIGHT,
                 "SETTINGS",
-                this::onSettings
+                this::onSettings // Callback: bật cờ hiển thị màn hình cài đặt
         ));
 
+        // Nút QUIT GAME
         buttons.add(new Button(
                 buttonX, buttonY + (BUTTON_HEIGHT + BUTTON_SPACING) * 3,
                 BUTTON_WIDTH, BUTTON_HEIGHT,
                 "QUIT GAME",
-                this::onQuitGame
+                this::onQuitGame // Callback: thoát ứng dụng
         ));
 
-        // Set button đầu tiên là selected
+        // Đặt button đầu tiên là selected mặc định
         buttons.get(0).setSelected(true);
 
-        // Tạo PowerUp displays - Left side
+        // --- Tạo PowerUp displays (Trang trí chuyển động) ---
         double leftX = centerX - 200;
         double startY = centerY - POWERUP_SIZE;
 
+        // PowerUps bên trái
         leftPowerUps.add(new PowerUpDisplay(
                 PowerUpType.DUPLICATE, leftX, startY,
                 POWERUP_SIZE, POWERUP_SIZE * 0.5, sprites
@@ -133,7 +147,7 @@ public class MainMenu implements Screen {
                 POWERUP_SIZE, POWERUP_SIZE * 0.5, sprites
         ));
 
-        // Tạo PowerUp displays - Right side
+        // PowerUps bên phải
         double rightX = centerX + 200;
 
         rightPowerUps.add(new PowerUpDisplay(
@@ -152,109 +166,146 @@ public class MainMenu implements Screen {
         ));
     }
 
+    /**
+     * Vẽ màn hình Menu chính hoặc ủy quyền vẽ cho màn hình con (Điểm cao/Cài đặt).
+     *
+     * @param gc GraphicsContext để vẽ.
+     */
     @Override
     public void render(GraphicsContext gc) {
+        // Kiểm tra if: Nếu đang hiển thị màn hình điểm cao, vẽ màn hình con và dừng.
         if (showingHighScore) {
             highScoreDisplay.render(gc);
             return;
         }
 
+        // Kiểm tra if: Nếu đang hiển thị màn hình cài đặt, vẽ màn hình con và dừng.
         if (showingSettings) {
             settingsScreen.render(gc);
             return;
         }
 
-        // Draw gradient background
+        // --- Bắt đầu vẽ Menu chính ---
+
+        // 1. Vẽ nền
         UIHelper.drawGradientBackground(gc, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
                 Color.rgb(10, 10, 30), Color.rgb(30, 10, 50));
 
-        // Draw logo
+        // 2. Vẽ logo
         double logoY = 100;
         UIHelper.drawLogo(gc, logo, WINDOW_WIDTH / 2, logoY, LOGO_WIDTH, LOGO_HEIGHT);
 
-        // Draw PowerUps
+        // 3. Vẽ các PowerUp trang trí (animation)
         for (PowerUpDisplay powerUp : leftPowerUps) {
-            powerUp.render(gc);
+            powerUp.render(gc); // Lặp qua danh sách PowerUp bên trái để vẽ từng cái.
         }
         for (PowerUpDisplay powerUp : rightPowerUps) {
-            powerUp.render(gc);
+            powerUp.render(gc); // Lặp qua danh sách PowerUp bên phải để vẽ từng cái.
         }
 
-        // Draw buttons
+        // 4. Vẽ các nút bấm
         for (Button button : buttons) {
-            button.render(gc);
+            button.render(gc); // Lặp qua danh sách nút để vẽ từng nút.
         }
 
-        // Draw instruction text
+        // 5. Vẽ hướng dẫn sử dụng
         UIHelper.drawCenteredText(gc, "Use Arrow Keys or Mouse to Navigate",
                 WINDOW_WIDTH / 2, WINDOW_HEIGHT - 50,
                 Font.font("Courier New", 14), Color.LIGHTGRAY);
     }
 
+    /**
+     * Cập nhật logic màn hình (cập nhật animation PowerUp hoặc ủy quyền cho màn hình con).
+     *
+     * @param deltaTime Thời gian trôi qua giữa các frame.
+     */
     @Override
     public void update(long deltaTime) {
+        // Kiểm tra if: Nếu đang hiển thị màn hình con, cập nhật màn hình con và dừng.
         if (showingHighScore) {
             highScoreDisplay.update(deltaTime);
             return;
         }
 
+        // Kiểm tra if: Nếu đang hiển thị màn hình con, cập nhật màn hình con và dừng.
         if (showingSettings) {
             settingsScreen.update(deltaTime);
             return;
         }
 
-        // Update PowerUp animations
+        // Cập nhật animation PowerUp trang trí
         long currentTime = System.currentTimeMillis();
         for (PowerUpDisplay powerUp : leftPowerUps) {
-            powerUp.update(currentTime);
+            powerUp.update(currentTime); // Lặp và cập nhật animation cho PowerUp bên trái.
         }
         for (PowerUpDisplay powerUp : rightPowerUps) {
-            powerUp.update(currentTime);
+            powerUp.update(currentTime); // Lặp và cập nhật animation cho PowerUp bên phải.
         }
     }
 
+    /**
+     * Xử lý sự kiện nhấn phím để điều hướng hoặc kích hoạt chức năng.
+     *
+     * @param keyCode Mã phím được nhấn.
+     */
     @Override
     public void handleKeyPressed(KeyCode keyCode) {
+        // --- Xử lý màn hình con trước ---
+        // Kiểm tra if: Nếu đang ở màn hình điểm cao, chỉ xử lý phím ESC.
         if (showingHighScore) {
             if (keyCode == KeyCode.ESCAPE) {
-                showingHighScore = false;
+                showingHighScore = false; // Nhấn ESC thoát màn hình điểm cao
             }
             return;
         }
 
+        // Kiểm tra if: Nếu đang ở màn hình cài đặt, ủy quyền xử lý phím cho màn hình cài đặt.
         if (showingSettings) {
             settingsScreen.handleKeyPressed(keyCode);
             return;
         }
 
+        // --- Xử lý điều hướng Menu chính ---
         switch (keyCode) {
             case UP:
-                navigateUp();
+                navigateUp(); // Phím Mũi tên Lên: chọn nút trước đó
                 break;
             case DOWN:
-                navigateDown();
+                navigateDown(); // Phím Mũi tên Xuống: chọn nút tiếp theo
                 break;
             case ENTER:
             case SPACE:
-                buttons.get(selectedButtonIndex).click();
+                buttons.get(selectedButtonIndex).click(); // Phím ENTER/SPACE: Kích hoạt nút đang chọn
                 break;
             case ESCAPE:
-                onQuitGame();
+                onQuitGame(); // Phím ESC: Thoát game
                 break;
         }
     }
 
+    /**
+     * Xử lý sự kiện nhả phím (không sử dụng trong Menu).
+     *
+     * @param keyCode Mã phím được nhả.
+     */
     @Override
     public void handleKeyReleased(KeyCode keyCode) {
-        // Not used
+        // Không sử dụng
     }
 
+    /**
+     * Xử lý sự kiện nhấp chuột.
+     *
+     * @param event Sự kiện chuột.
+     */
     @Override
     public void handleMouseClicked(MouseEvent event) {
+        // Kiểm tra if: Nếu đang ở màn hình con, bỏ qua nhấp chuột.
         if (showingHighScore) {
             return;
         }
 
+        // Kiểm tra if: Nếu đang ở màn hình cài đặt, ủy quyền xử lý nhấp chuột.
         if (showingSettings) {
             settingsScreen.handleMouseClicked(event);
             return;
@@ -263,20 +314,29 @@ public class MainMenu implements Screen {
         double mouseX = event.getX();
         double mouseY = event.getY();
 
+        // Kiểm tra và kích hoạt nút bấm khi nhấp chuột
         for (Button button : buttons) {
+            // Kiểm tra if: Nếu chuột nằm trong phạm vi nút
             if (button.contains(mouseX, mouseY)) {
-                button.click();
-                break;
+                button.click(); // Kích hoạt nút
+                break; // Chỉ xử lý một nút duy nhất
             }
         }
     }
 
+    /**
+     * Xử lý sự kiện di chuyển chuột (dùng để cập nhật trạng thái hover và selected).
+     *
+     * @param event Sự kiện chuột.
+     */
     @Override
     public void handleMouseMoved(MouseEvent event) {
+        // Kiểm tra if: Nếu đang ở màn hình con, bỏ qua di chuyển chuột.
         if (showingHighScore) {
             return;
         }
 
+        // Kiểm tra if: Nếu đang ở màn hình cài đặt, ủy quyền xử lý di chuyển chuột.
         if (showingSettings) {
             settingsScreen.handleMouseMoved(event);
             return;
@@ -285,85 +345,112 @@ public class MainMenu implements Screen {
         double mouseX = event.getX();
         double mouseY = event.getY();
 
-        // Update hover state
+        // Cập nhật trạng thái hover và đồng bộ với trạng thái selected
         for (int i = 0; i < buttons.size(); i++) {
             Button button = buttons.get(i);
             boolean isHovered = button.contains(mouseX, mouseY);
-            button.setHovered(isHovered);
+            button.setHovered(isHovered); // Thiết lập trạng thái hover
 
+            // Kiểm tra if: Nếu chuột di chuyển qua một nút khác nút đang chọn
             if (isHovered && selectedButtonIndex != i) {
-                buttons.get(selectedButtonIndex).setSelected(false);
-                selectedButtonIndex = i;
-                button.setSelected(true);
+                buttons.get(selectedButtonIndex).setSelected(false); // Bỏ chọn nút cũ
+                selectedButtonIndex = i; // Cập nhật chỉ số nút đang được chọn
+                button.setSelected(true); // Chọn nút mới
             }
         }
     }
 
+    /**
+     * Xử lý khi màn hình được kích hoạt (vào Menu).
+     */
     @Override
     public void onEnter() {
+        // Đặt lại các cờ và lựa chọn khi vào menu
         showingHighScore = false;
         showingSettings = false;
         selectedButtonIndex = 0;
-        updateButtonSelection();
+        updateButtonSelection(); // Đảm bảo nút đầu tiên được chọn
     }
 
+    /**
+     * Xử lý khi màn hình bị vô hiệu hóa (thoát Menu).
+     */
     @Override
     public void onExit() {
-        // Cleanup if needed
+        // Dọn dẹp tài nguyên hoặc dừng nhạc nền nếu cần thiết.
     }
 
     /**
-     * Navigate lên button phía trên.
+     * Điều hướng lên nút phía trên.
      */
     private void navigateUp() {
-        buttons.get(selectedButtonIndex).setSelected(false);
-        selectedButtonIndex--;
+        buttons.get(selectedButtonIndex).setSelected(false); // Bỏ chọn nút hiện tại
+        selectedButtonIndex--; // Giảm chỉ số
+        // Kiểm tra if: Nếu vượt quá giới hạn trên (nhỏ hơn 0)
         if (selectedButtonIndex < 0) {
-            selectedButtonIndex = buttons.size() - 1;
+            selectedButtonIndex = buttons.size() - 1; // Quay vòng lên nút cuối cùng
         }
-        updateButtonSelection();
+        updateButtonSelection(); // Cập nhật trạng thái hiển thị
     }
 
     /**
-     * Navigate xuống button phía dưới.
+     * Điều hướng xuống nút phía dưới.
      */
     private void navigateDown() {
-        buttons.get(selectedButtonIndex).setSelected(false);
-        selectedButtonIndex++;
+        buttons.get(selectedButtonIndex).setSelected(false); // Bỏ chọn nút hiện tại
+        selectedButtonIndex++; // Tăng chỉ số
+        // Kiểm tra if: Nếu vượt quá giới hạn dưới (lớn hơn hoặc bằng tổng số nút)
         if (selectedButtonIndex >= buttons.size()) {
-            selectedButtonIndex = 0;
+            selectedButtonIndex = 0; // Quay vòng xuống nút đầu tiên
         }
-        updateButtonSelection();
+        updateButtonSelection(); // Cập nhật trạng thái hiển thị
     }
 
     /**
-     * Update trạng thái selected của buttons.
+     * Cập nhật trạng thái selected của tất cả buttons (đảm bảo chỉ có một nút được chọn).
      */
     private void updateButtonSelection() {
         for (int i = 0; i < buttons.size(); i++) {
+            // Kiểm tra if: Chỉ đặt selected cho nút có chỉ số trùng với selectedButtonIndex
             buttons.get(i).setSelected(i == selectedButtonIndex);
         }
     }
 
-    // Button callbacks
+    // --- Button callbacks (Hành động khi nút được nhấn) ---
+
+    /**
+     * Chuyển trạng thái game sang PLAYING để bắt đầu game mới.
+     */
     private void onStartGame() {
         stateManager.setState(GameState.PLAYING);
     }
 
+    /**
+     * Hiển thị màn hình điểm cao.
+     */
     private void onHighScore() {
         showingHighScore = true;
-        highScoreDisplay.onEnter();
+        highScoreDisplay.onEnter(); // Xử lý logic khi vào màn hình điểm cao
     }
 
+    /**
+     * Hiển thị màn hình cài đặt.
+     */
     private void onSettings() {
         showingSettings = true;
-        settingsScreen.onEnter();
+        settingsScreen.onEnter(); // Xử lý logic khi vào màn hình cài đặt
     }
 
+    /**
+     * Callback được gọi khi thoát khỏi màn hình cài đặt (SettingsScreen).
+     */
     private void onBackFromSettings() {
         showingSettings = false;
     }
 
+    /**
+     * Thoát ứng dụng (gọi System.exit(0)).
+     */
     private void onQuitGame() {
         System.exit(0);
     }
