@@ -28,30 +28,39 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import java.time.LocalDate;
 
+/**
+ * Lớp chính khởi chạy ứng dụng Arkanoid, thiết lập môi trường JavaFX,
+ * vòng lặp game, và quản lý các sự kiện input cũng như chuyển đổi trạng thái (GameState).
+ */
 public class ArkanoidApp extends Application {
+    // Hằng số kích thước cửa sổ
     private static final int WIDTH = Constants.Window.WINDOW_WIDTH;
     private static final int HEIGHT = Constants.Window.WINDOW_HEIGHT;
-    private static final int PLAY_AREA_WIDTH = Constants.PlayArea.PLAY_AREA_WIDTH; // UI bar phía trên
-    private static final int PLAY_AREA_HEIGHT = Constants.PlayArea.PLAY_AREA_HEIGHT; // 650px
+    private static final int PLAY_AREA_WIDTH = Constants.PlayArea.PLAY_AREA_WIDTH;
+    private static final int PLAY_AREA_HEIGHT = Constants.PlayArea.PLAY_AREA_HEIGHT;
 
     private GameManager gameManager;
     private CanvasRenderer renderer;
     private GraphicsContext gc;
-    private boolean spacePressed = false; // Prevent key repeat
+    private boolean spacePressed = false; // Ngăn chặn lặp lại phím
 
-    // UI Screens
+    // Các màn hình UI
     private MainMenu mainMenu;
     private PauseScreen pauseScreen;
     private GameOverScreen gameOverScreen;
     private WinScreen winScreen;
     private HighScoreManager highScoreManager;
 
-    // Scene reference for input handling
+    // Tham chiếu Scene để xử lý input
     private Scene scene;
 
+    /**
+     * Phương thức khởi tạo chính của ứng dụng JavaFX.
+     * @param stage Stage chính của ứng dụng.
+     */
     @Override
     public void start(Stage stage) {
-        // Initialize AudioManager FIRST
+        // Khởi tạo AudioManager đầu tiên
         AudioManager audioManager = AudioManager.getInstance();
         try {
             audioManager.initialize();
@@ -63,29 +72,25 @@ public class ArkanoidApp extends Application {
 
         Canvas canvas = new Canvas(WIDTH, HEIGHT);
 
-        // Use global sprite cache + provider and pass to CanvasRenderer
+        // Khởi tạo Sprite Cache và Provider
         SpriteCache spriteCache = SpriteCache.getInstance();
-
-        // Ensure sprite cache is loaded before creating game objects/animations
         if (!spriteCache.isInitialized()) {
             spriteCache.initialize();
         }
-
         SpriteProvider sprites = new SpriteCacheProvider(spriteCache);
 
-        // Initialize AnimationFactory with the sprite provider so animations
-        // can be created during GameManager initialization.
+        // Khởi tạo AnimationFactory
         AnimationFactory.initialize(sprites);
 
         renderer = new CanvasRenderer(canvas, sprites);
 
         gc = canvas.getGraphicsContext2D();
 
-        // GameManager with PLAY_AREA dimensions (excluding UI bar)
+        // Khởi tạo quản lý game và High Score
         gameManager = new GameManager();
-
-        // Initialize HighScoreManager and UI Screens
         highScoreManager = new HighScoreManager();
+
+        // Khởi tạo các màn hình UI
         mainMenu = new MainMenu(gameManager.getStateManager(), sprites);
         pauseScreen = new PauseScreen(sprites);
         gameOverScreen = new GameOverScreen(sprites, highScoreManager);
@@ -94,12 +99,12 @@ public class ArkanoidApp extends Application {
         Pane root = new Pane(canvas);
         scene = new Scene(root);
 
-        // Keyboard input handlers
+        // ====== Xử lý Input Keyboard ======
         scene.setOnKeyPressed(e -> {
             KeyCode code = e.getCode();
             GameState currentState = gameManager.getStateManager().getState();
 
-            // Route input based on current state
+            // Định tuyến input dựa trên trạng thái hiện tại
             switch (currentState) {
                 case MENU:
                     mainMenu.handleKeyPressed(code);
@@ -116,7 +121,7 @@ public class ArkanoidApp extends Application {
                 case GAME_OVER:
                 case WIN:
                     if (code == KeyCode.ENTER) {
-                        // Return to menu and reset game
+                        // Trở về menu và reset game
                         gameManager.resetGame();
                         gameManager.getStateManager().setState(GameState.MENU);
                         mainMenu.onEnter();
@@ -132,19 +137,19 @@ public class ArkanoidApp extends Application {
             if (currentState == GameState.MENU) {
                 mainMenu.handleKeyReleased(code);
             } else if (currentState == GameState.PLAYING) {
-                // Stop paddle movement
+                // Dừng di chuyển paddle khi nhả phím
                 if (code == KeyCode.LEFT || code == KeyCode.RIGHT) {
                     gameManager.paddle.stop();
                 }
 
-                // Reset space key state
+                // Đặt lại trạng thái phím cách
                 if (code == KeyCode.SPACE) {
                     spacePressed = false;
                 }
             }
         });
 
-        // Mouse input handlers
+        // ====== Xử lý Input Mouse ======
         scene.setOnMouseClicked(e -> {
             GameState currentState = gameManager.getStateManager().getState();
             if (currentState == GameState.MENU) {
@@ -164,26 +169,26 @@ public class ArkanoidApp extends Application {
         stage.setResizable(false);
         stage.show();
 
-        // Main game loop (60 FPS)
+        // ====== Vòng Lặp Game Chính (60 FPS) ======
         AnimationTimer loop = new AnimationTimer() {
             private long lastUpdateTime = 0;
             private GameState previousState = GameState.MENU;
 
             @Override
             public void handle(long now) {
-                // Calculate delta time
-                long deltaTime = (now - lastUpdateTime) / 1_000_000; // Convert to ms
+                // Tính toán delta time (thời gian trôi qua)
+                long deltaTime = (now - lastUpdateTime) / 1_000_000; // Chuyển sang ms
                 lastUpdateTime = now;
 
                 GameState currentState = gameManager.getStateManager().getState();
 
-                // Handle state transitions
+                // Xử lý chuyển đổi trạng thái
                 if (currentState != previousState) {
                     onStateChange(previousState, currentState);
                     previousState = currentState;
                 }
 
-                // Update based on state
+                // Cập nhật logic dựa trên trạng thái
                 switch (currentState) {
                     case MENU:
                         mainMenu.update(deltaTime);
@@ -204,18 +209,13 @@ public class ArkanoidApp extends Application {
                     case WIN:
                         winScreen.update(deltaTime);
                         break;
-
-                    case LEVEL_COMPLETE:
-                        // Optional: could add delay here
-                        break;
                 }
 
-                // Render based on state
+                // Render dựa trên trạng thái
                 renderer.clear();
 
                 switch (currentState) {
                     case MENU:
-                        // Render menu directly on canvas
                         mainMenu.render(gc);
                         break;
 
@@ -224,22 +224,21 @@ public class ArkanoidApp extends Application {
                         break;
 
                     case PAUSED:
-                        // Render gameplay in background, then pause overlay
+                        // Render gameplay trước, sau đó là lớp phủ Pause
                         renderGameplay();
                         pauseScreen.render(gc);
                         break;
 
                     case GAME_OVER:
-                        // Render game over screen
                         gameOverScreen.render(gc);
                         break;
 
                     case WIN:
-                        // Render win screen
                         winScreen.render(gc);
                         break;
 
                     case LEVEL_COMPLETE:
+                        // Render gameplay và thông báo hoàn thành màn
                         renderGameplay();
                         renderer.drawLevelCompleteOverlay();
                         break;
@@ -252,12 +251,16 @@ public class ArkanoidApp extends Application {
     }
 
     /**
-     * Called when game state changes.
+     * Phương thức được gọi khi trạng thái game thay đổi.
+     * Xử lý logic vào/ra (onEnter/onExit) cho các màn hình.
+     *
+     * @param from Trạng thái cũ.
+     * @param to Trạng thái mới.
      */
     private void onStateChange(GameState from, GameState to) {
         System.out.println("State changed: " + from + " -> " + to);
 
-        // Handle exit from previous state
+        // Xử lý thoát khỏi trạng thái cũ
         switch (from) {
             case MENU:
                 mainMenu.onExit();
@@ -273,89 +276,78 @@ public class ArkanoidApp extends Application {
                 break;
         }
 
-        // Handle enter to new state
+        // Xử lý vào trạng thái mới
         switch (to) {
             case MENU:
                 mainMenu.onEnter();
                 break;
 
             case GAME_OVER:
-                // Set game result info
+            case WIN:
+                // Logic chung cho GAME_OVER và WIN
                 int finalScore = gameManager.getScore();
                 int currentRound = gameManager.getRoundsManager().getCurrentRoundNumber();
 
-                // Add to high scores if qualified
+                // Kiểm tra và thêm vào High Score
                 if (highScoreManager.isHighScore(finalScore)) {
-                    // TODO: Show name input dialog
-
-                    String playerName = "PLAYER"; // For now, use default name
+                    // TODO: Hiển thị dialog nhập tên người chơi
+                    String playerName = "PLAYER"; // Tạm thời dùng tên mặc định
                     highScoreManager.addScore(playerName, finalScore, LocalDate.now());
                 }
 
-                gameOverScreen.setGameResult(finalScore, currentRound);
-                gameOverScreen.onEnter();
-                break;
-
-            case WIN:
-                // Set game result info
-                int winScore = gameManager.getScore();
-                int totalRounds = gameManager.getRoundsManager().getCurrentRoundNumber();
-
-                // Add to high scores if qualified
-                if (highScoreManager.isHighScore(winScore)) {
-                    // TODO: Show name input dialog
-                    String playerName = "PLAYER"; // For now, use default name
-                    highScoreManager.addScore(playerName, winScore, LocalDate.now());
+                if (to == GameState.GAME_OVER) {
+                    gameOverScreen.setGameResult(finalScore, currentRound);
+                    gameOverScreen.onEnter();
+                } else { // GameState.WIN
+                    winScreen.setGameResult(finalScore, currentRound);
+                    winScreen.onEnter();
                 }
-
-                winScreen.setGameResult(winScore, totalRounds);
-                winScreen.onEnter();
                 break;
         }
     }
 
     /**
-     * Render gameplay elements (called when in PLAYING or PAUSED state).
+     * Render tất cả các thành phần gameplay (thực thể game và UI).
      */
     private void renderGameplay() {
-        // ====== UI LAYER (Top) ======
+        // ====== Lớp UI (trên cùng) ======
         int highScore = highScoreManager.getHighestScore();
         renderer.drawUI(gameManager.getScore(), highScore, gameManager.getLives());
 
-        // ====== GAME OBJECTS LAYER ======
-        // Draw paddle
+        // ====== Lớp Đối Tượng Game ======
+        // Vẽ paddle
         renderer.drawPaddle(gameManager.paddle);
 
-        // Draw ALL balls (multi-ball support)
+        // Vẽ tất cả các quả bóng
         for (Ball ball : gameManager.balls) {
             renderer.drawBall(ball);
         }
 
-        // Draw ALL lasers
+        // Vẽ tất cả các tia laser đang hoạt động
         for (Laser laser : gameManager.getLasers()) {
             if (laser.isAlive()) {
                 renderer.drawLaser(laser);
             }
         }
 
-        // Draw bricks
+        // Vẽ gạch
         for (Brick brick : gameManager.bricks) {
             if (brick.isAlive()) {
                 renderer.drawBrick(brick);
             }
         }
 
-        // Draw PowerUps with animation
+        // Vẽ PowerUps
         for (PowerUp powerUp : gameManager.getPowerUpManager().getActivePowerUps()) {
             renderer.drawPowerUp(powerUp);
         }
     }
 
     /**
-     * Handle input during PLAYING state.
+     * Xử lý input bàn phím khi game đang ở trạng thái PLAYING.
      */
     private void handlePlayingInput(KeyCode code) {
-        // Movement controls
+        // Điều khiển di chuyển
         if (code == KeyCode.LEFT) {
             gameManager.paddle.moveLeft();
         }
@@ -363,22 +355,20 @@ public class ArkanoidApp extends Application {
             gameManager.paddle.moveRight();
         }
 
-        // Space bar: Launch ball OR shoot laser
+        // Phím Space: Phóng bóng HOẶC bắn laser
         if (code == KeyCode.SPACE && !spacePressed) {
             spacePressed = true;
 
             if (gameManager.isAttached()) {
-                // Launch ball if attached
-                gameManager.launchBall();
+                gameManager.launchBall(); // Phóng bóng
             } else if (gameManager.paddle.isLaserEnabled()) {
-                // Shoot laser if laser power-up active
-                gameManager.shootLaser();
+                gameManager.shootLaser(); // Bắn laser
             }
         }
 
-        // ESC: Pause game
+        // ESC: Tạm dừng game
         if (code == KeyCode.ESCAPE) {
-            // Set pause screen info before pausing
+            // Cài đặt thông tin game cho màn hình Pause
             pauseScreen.setGameInfo(
                     gameManager.getRoundsManager().getCurrentRoundNumber(),
                     gameManager.getRoundsManager().getCurrentRoundName(),
@@ -389,7 +379,7 @@ public class ArkanoidApp extends Application {
             pauseScreen.onEnter();
         }
 
-        // R: Restart game (debug)
+        // R: Khởi động lại game (Debug)
         if (code == KeyCode.R) {
             gameManager.resetGame();
             System.out.println("Game RESTARTED");
@@ -397,15 +387,15 @@ public class ArkanoidApp extends Application {
     }
 
     /**
-     * Handle input during PAUSED state.
+     * Xử lý input bàn phím khi game đang ở trạng thái PAUSED.
      */
     private void handlePausedInput(KeyCode code) {
         if (code == KeyCode.SPACE) {
-            // Resume game
+            // Tiếp tục game
             gameManager.getStateManager().setState(GameState.PLAYING);
             pauseScreen.onExit();
         } else if (code == KeyCode.ESCAPE) {
-            // Return to menu
+            // Trở về menu
             gameManager.resetGame();
             gameManager.getStateManager().setState(GameState.MENU);
             pauseScreen.onExit();
@@ -414,17 +404,9 @@ public class ArkanoidApp extends Application {
     }
 
     /**
-     * Draws round information at top of play area.
+     * Phương thức main để khởi chạy ứng dụng JavaFX.
+     * @param args Tham số dòng lệnh.
      */
-    // Removed - now using UI screens
-
-    /**
-     * Draws debug information (ball count, laser count, etc.).
-     */
-    // Removed - can add back if needed
-
-    // Old overlay methods removed - now using UI screens
-
     public static void main(String[] args) {
         launch(args);
     }
