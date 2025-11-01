@@ -8,9 +8,16 @@ import javafx.scene.text.TextAlignment;
 import javafx.geometry.VPos;
 
 /**
- * Helper class chứa các utility methods cho UI rendering.
+ * Lớp chứa các utility methods (phương thức tiện ích) tĩnh, chuyên dùng
+ * để hỗ trợ việc rendering các thành phần giao diện người dùng (UI)
+ * lên {@link GraphicsContext}.
  */
 public class UIHelper {
+
+    // Ngăn chặn khởi tạo đối tượng utility class
+    private UIHelper() {
+        throw new UnsupportedOperationException("Utility class");
+    }
 
     /**
      * Vẽ text căn giữa trong một vùng rectangle.
@@ -28,13 +35,15 @@ public class UIHelper {
                                         Font font, Color color) {
         gc.setFont(font);
         gc.setFill(color);
+        // Thiết lập căn giữa cho text
         gc.setTextAlign(TextAlignment.CENTER);
         gc.setTextBaseline(VPos.CENTER);
+        // Tính toán vị trí center để vẽ
         gc.fillText(text, x + width / 2, y + height / 2);
     }
 
     /**
-     * Vẽ text căn giữa tại một điểm cụ thể.
+     * Vẽ text căn giữa tại một điểm cụ thể (centerX, centerY).
      * @param gc GraphicsContext để vẽ
      * @param text Text cần vẽ
      * @param centerX Tọa độ X center
@@ -47,6 +56,7 @@ public class UIHelper {
                                         Font font, Color color) {
         gc.setFont(font);
         gc.setFill(color);
+        // Thiết lập căn giữa cho text
         gc.setTextAlign(TextAlignment.CENTER);
         gc.setTextBaseline(VPos.CENTER);
         gc.fillText(text, centerX, centerY);
@@ -65,6 +75,7 @@ public class UIHelper {
                                 double centerX, double centerY,
                                 double width, double height) {
         if (logo != null) {
+            // Tính toán tọa độ góc trên bên trái để căn giữa
             double x = centerX - width / 2;
             double y = centerY - height / 2;
             gc.drawImage(logo, x, y, width, height);
@@ -85,6 +96,7 @@ public class UIHelper {
                                            Font font, Color color) {
         gc.setFont(font);
         gc.setFill(color);
+        // Thiết lập căn trái và baseline TOP
         gc.setTextAlign(TextAlignment.LEFT);
         gc.setTextBaseline(VPos.TOP);
         gc.fillText(text, x, y);
@@ -104,13 +116,14 @@ public class UIHelper {
                                             Font font, Color color) {
         gc.setFont(font);
         gc.setFill(color);
+        // Thiết lập căn phải và baseline TOP
         gc.setTextAlign(TextAlignment.RIGHT);
         gc.setTextBaseline(VPos.TOP);
         gc.fillText(text, x, y);
     }
 
     /**
-     * Vẽ một box với border.
+     * Vẽ một box (hình chữ nhật) với border tùy chọn.
      * @param gc GraphicsContext để vẽ
      * @param x Tọa độ X
      * @param y Tọa độ Y
@@ -123,11 +136,13 @@ public class UIHelper {
     public static void drawBox(GraphicsContext gc, double x, double y,
                                double width, double height,
                                Color fillColor, Color borderColor, double borderWidth) {
+        // Vẽ fill
         if (fillColor != null) {
             gc.setFill(fillColor);
             gc.fillRect(x, y, width, height);
         }
 
+        // Vẽ border
         if (borderColor != null && borderWidth > 0) {
             gc.setStroke(borderColor);
             gc.setLineWidth(borderWidth);
@@ -136,7 +151,7 @@ public class UIHelper {
     }
 
     /**
-     * Vẽ một gradient background.
+     * Vẽ một gradient background dọc đơn giản.
      * @param gc GraphicsContext để vẽ
      * @param x Tọa độ X
      * @param y Tọa độ Y
@@ -148,26 +163,29 @@ public class UIHelper {
     public static void drawGradientBackground(GraphicsContext gc, double x, double y,
                                               double width, double height,
                                               Color topColor, Color bottomColor) {
-        // Simple vertical gradient simulation bằng cách vẽ nhiều horizontal lines
+        // Mô phỏng gradient đứng bằng cách vẽ nhiều đường ngang mỏng
         int steps = 100;
         double stepHeight = height / steps;
 
         for (int i = 0; i < steps; i++) {
             double ratio = (double) i / steps;
+            // Nội suy màu
             Color interpolated = interpolateColor(topColor, bottomColor, ratio);
             gc.setFill(interpolated);
-            gc.fillRect(x, y + i * stepHeight, width, stepHeight + 1); // +1 để tránh gap
+            // Vẽ đường ngang (thêm +1 để đảm bảo không có khoảng trống)
+            gc.fillRect(x, y + i * stepHeight, width, stepHeight + 1);
         }
     }
 
     /**
-     * Interpolate giữa 2 màu.
+     * Nội suy (Interpolate) giữa hai màu dựa trên tỉ lệ.
      * @param c1 Màu 1
      * @param c2 Màu 2
-     * @param ratio Tỉ lệ (0.0 to 1.0)
-     * @return Màu interpolated
+     * @param ratio Tỉ lệ (0.0 đến 1.0)
+     * @return Màu đã được nội suy
      */
     private static Color interpolateColor(Color c1, Color c2, double ratio) {
+        // Công thức trộn màu (RGB)
         double red = c1.getRed() + (c2.getRed() - c1.getRed()) * ratio;
         double green = c1.getGreen() + (c2.getGreen() - c1.getGreen()) * ratio;
         double blue = c1.getBlue() + (c2.getBlue() - c1.getBlue()) * ratio;

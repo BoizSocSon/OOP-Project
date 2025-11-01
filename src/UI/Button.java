@@ -6,18 +6,23 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Component Button cho UI Menu.
- * Quản lý rendering, state (hover, selected) và click detection.
+ * <p>Component Button cho giao diện Menu.</p>
+ * <p>Quản lý việc render, các trạng thái tương tác (hover, selected) và xử lý sự kiện click.</p>
  */
 public class Button {
+    // Tọa độ và kích thước của button
     private double x, y;
     private double width, height;
     private String text;
+
+    // Trạng thái button
     private boolean isHovered;
     private boolean isSelected;
+
+    // Hành động chạy khi button được click
     private Runnable onClick;
 
-    // Colors
+    // Màu sắc cố định cho các trạng thái
     private static final Color NORMAL_COLOR = Color.rgb(100, 100, 100);
     private static final Color HOVER_COLOR = Color.rgb(150, 150, 200);
     private static final Color SELECTED_COLOR = Color.rgb(200, 200, 255);
@@ -47,12 +52,13 @@ public class Button {
     }
 
     /**
-     * Render button lên canvas.
+     * Render (vẽ) button lên canvas.
      * @param gc GraphicsContext để vẽ
      */
     public void render(GraphicsContext gc) {
-        // Chọn màu dựa trên state
         Color bgColor;
+
+        // Xác định màu nền dựa trên trạng thái (Ưu tiên SELECTED > HOVER > NORMAL)
         if (isSelected) {
             bgColor = SELECTED_COLOR;
         } else if (isHovered) {
@@ -61,36 +67,39 @@ public class Button {
             bgColor = NORMAL_COLOR;
         }
 
-        // Vẽ background
+        // Vẽ nền button
         gc.setFill(bgColor);
         gc.fillRect(x, y, width, height);
 
-        // Vẽ border
+        // Vẽ viền
         gc.setStroke(BORDER_COLOR);
         gc.setLineWidth(BORDER_WIDTH);
         gc.strokeRect(x, y, width, height);
 
-        // Vẽ text
+        // Thiết lập font và vẽ text
         gc.setFill(TEXT_COLOR);
         gc.setTextAlign(TextAlignment.CENTER);
         gc.setTextBaseline(javafx.geometry.VPos.CENTER);
         gc.setFont(Font.font("Courier New", 20));
+
+        // Vẽ text căn giữa button
         gc.fillText(text, x + width / 2, y + height / 2);
     }
 
     /**
-     * Kiểm tra xem một điểm có nằm trong bounds của button không.
+     * Kiểm tra xem một điểm (tọa độ chuột) có nằm trong bounds của button không.
      * @param mouseX Tọa độ X của chuột
      * @param mouseY Tọa độ Y của chuột
      * @return true nếu điểm nằm trong button
      */
     public boolean contains(double mouseX, double mouseY) {
+        // Logic kiểm tra phạm vi (boundary check)
         return mouseX >= x && mouseX <= x + width &&
                 mouseY >= y && mouseY <= y + height;
     }
 
     /**
-     * Thực hiện action khi button được click.
+     * Thực hiện action (Runnable) khi button được click.
      */
     public void click() {
         if (onClick != null) {
@@ -98,7 +107,8 @@ public class Button {
         }
     }
 
-    // Getters and Setters
+    // Các phương thức Getter/Setter cho trạng thái và thuộc tính
+
     public boolean isHovered() {
         return isHovered;
     }
