@@ -3,6 +3,7 @@ package UI.Screens;
 import Engine.HighScoreManager;
 import UI.Screen;
 import UI.UIHelper;
+import Utils.AssetLoader;
 import Utils.Constants;
 import Utils.SpriteProvider;
 import javafx.scene.canvas.GraphicsContext;
@@ -20,6 +21,11 @@ public class WinScreen implements Screen {
     private final SpriteProvider sprites; // Nguồn cung cấp sprite để tải hình ảnh.
     private final HighScoreManager highScoreManager; // Quản lý điểm cao để lấy và kiểm tra high score.
     private Image logo; // Sprite logo game.
+
+    // Font families
+    private String fontFamilyOptimus; // Lưu tên font family để tái sử dụng
+    private String fontFamilyGeneration; // Lưu tên font family để tái sử dụng
+    private String fontFamilyEmulogic; // Lưu tên font family để tái sử dụng
 
     // Thông tin kết quả game được thiết lập từ GameManager
     private int finalScore; // Điểm số cuối cùng đạt được.
@@ -52,6 +58,21 @@ public class WinScreen implements Screen {
      */
     private void loadAssets() {
         logo = sprites.get("logo.png");
+        try {
+            // Chỉ load font một lần, lưu tên font family
+            Font baseFontEmulogic = AssetLoader.loadFont("emulogic.ttf", 24);
+            Font baseFontGeneration = AssetLoader.loadFont("generation.ttf", 24);
+            Font baseFontOptimus = AssetLoader.loadFont("optimus.otf", 24);
+            fontFamilyEmulogic = baseFontEmulogic.getFamily();
+            fontFamilyGeneration = baseFontGeneration.getFamily();
+            fontFamilyOptimus = baseFontOptimus.getFamily();
+        } catch (Exception e) {
+            // Sử dụng font mặc định nếu không tải được
+            fontFamilyEmulogic = "Courier New";
+            fontFamilyGeneration = "Courier New";
+            fontFamilyOptimus = "Monospaced";
+            System.out.println("WinScreen: Failed to load custom font, using default.");
+        }
     }
 
     /**
@@ -97,15 +118,15 @@ public class WinScreen implements Screen {
         // Vẽ tiêu đề chính
         UIHelper.drawCenteredText(gc, "CONGRATULATIONS!",
                 WINDOW_WIDTH / 2, boxY + 140,
-                Font.font("Courier New", 32), Color.GOLD);
+                Font.font(fontFamilyEmulogic, 27), Color.GOLD);
 
         // Vẽ tiêu đề phụ
         UIHelper.drawCenteredText(gc, "You Won!",
                 WINDOW_WIDTH / 2, boxY + 180,
-                Font.font("Courier New", 24), Color.YELLOW);
+                Font.font(fontFamilyGeneration, 24), Color.YELLOW);
 
         // --- Vẽ thống kê game ---
-        Font statsFont = Font.font("Courier New", 22);
+        Font statsFont = Font.font(fontFamilyOptimus, 22);
         Color statsColor = Color.WHITE;
         double statsY = boxY + 230;
         double lineSpacing = 40;
@@ -133,19 +154,19 @@ public class WinScreen implements Screen {
             double starY = statsY + lineSpacing * 3;
 
             // Vẽ các ngôi sao quay trang trí hai bên
-            drawRotatingStar(gc, WINDOW_WIDTH / 2 - 150, starY);
-            drawRotatingStar(gc, WINDOW_WIDTH / 2 + 150, starY);
+            drawRotatingStar(gc, WINDOW_WIDTH / 2 - 180, starY);
+            drawRotatingStar(gc, WINDOW_WIDTH / 2 + 180, starY);
 
             // Vẽ thông báo chính
             UIHelper.drawCenteredText(gc, "NEW HIGH SCORE!",
                     WINDOW_WIDTH / 2, starY,
-                    Font.font("Courier New", 26), Color.GOLD);
+                    Font.font(fontFamilyEmulogic, 21), Color.GOLD);
 
             gc.restore(); // Khôi phục trạng thái GC
         }
 
         // --- Vẽ hướng dẫn thoát màn hình ---
-        Font instructionFont = Font.font("Courier New", 16);
+        Font instructionFont = Font.font(fontFamilyOptimus, 16);
         Color instructionColor = Color.LIGHTGRAY;
 
         UIHelper.drawCenteredText(gc, "Press ENTER to return to menu",

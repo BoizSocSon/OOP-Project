@@ -2,6 +2,7 @@ package UI.Screens;
 
 import UI.Screen;
 import UI.UIHelper;
+import Utils.AssetLoader;
 import Utils.Constants;
 import Utils.SpriteProvider;
 import javafx.scene.canvas.GraphicsContext;
@@ -18,6 +19,11 @@ import javafx.scene.text.Font;
 public class PauseScreen implements Screen {
     private final SpriteProvider sprites; // Nguồn cung cấp sprite.
     private Image logo; // Sprite logo game.
+
+    // Font families
+    private String fontFamilyOptimus; // Lưu tên font family để tái sử dụng
+    private String fontFamilyGeneration; // Lưu tên font family để tái sử dụng
+    private String fontFamilyEmulogic; // Lưu tên font family để tái sử dụng
 
     // Thông tin trạng thái game
     private int currentRound; // Vòng chơi hiện tại.
@@ -45,6 +51,21 @@ public class PauseScreen implements Screen {
      */
     private void loadAssets() {
         logo = sprites.get("logo.png");
+        try {
+            // Chỉ load font một lần, lưu tên font family
+            Font baseFontEmulogic = AssetLoader.loadFont("emulogic.ttf", 24);
+            Font baseFontGeneration = AssetLoader.loadFont("generation.ttf", 24);
+            Font baseFontOptimus = AssetLoader.loadFont("optimus.otf", 24);
+            fontFamilyEmulogic = baseFontEmulogic.getFamily();
+            fontFamilyGeneration = baseFontGeneration.getFamily();
+            fontFamilyOptimus = baseFontOptimus.getFamily();
+        } catch (Exception e) {
+            // Sử dụng font mặc định nếu không tải được
+            fontFamilyEmulogic = "Courier New";
+            fontFamilyGeneration = "Courier New";
+            fontFamilyOptimus = "Monospaced";
+            System.out.println("PauseScreen: Failed to load custom font, using default.");
+        }
     }
 
     /**
@@ -89,10 +110,10 @@ public class PauseScreen implements Screen {
         // Vẽ tiêu đề "GAME PAUSED"
         UIHelper.drawCenteredText(gc, "GAME PAUSED",
                 WINDOW_WIDTH / 2, boxY + 130,
-                Font.font("Courier New", 32), Color.YELLOW);
+                Font.font(fontFamilyEmulogic, 32), Color.YELLOW);
 
         // --- Vẽ thông tin game ---
-        Font infoFont = Font.font("Courier New", 20);
+        Font infoFont = Font.font(fontFamilyOptimus, 20);
         Color infoColor = Color.WHITE;
         double infoY = boxY + 180;
         double lineSpacing = 35;
@@ -114,7 +135,7 @@ public class PauseScreen implements Screen {
                 infoFont, Color.RED);
 
         // --- Vẽ hướng dẫn ---
-        Font instructionFont = Font.font("Courier New", 14);
+        Font instructionFont = Font.font(fontFamilyOptimus, 14);
         Color instructionColor = Color.LIGHTGRAY;
         double instructionY = boxY + boxHeight - 60;
 

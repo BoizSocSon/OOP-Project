@@ -1,5 +1,6 @@
 package UI;
 
+import Utils.AssetLoader;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -31,6 +32,8 @@ public class Button {
 
     private static final double BORDER_WIDTH = 2.0;
 
+    private Font font;
+
     /**
      * Constructor cho Button.
      * @param x Tọa độ X (top-left)
@@ -49,6 +52,7 @@ public class Button {
         this.onClick = onClick;
         this.isHovered = false;
         this.isSelected = false;
+        loadFont();
     }
 
     /**
@@ -80,7 +84,7 @@ public class Button {
         gc.setFill(TEXT_COLOR);
         gc.setTextAlign(TextAlignment.CENTER);
         gc.setTextBaseline(javafx.geometry.VPos.CENTER);
-        gc.setFont(Font.font("Courier New", 20));
+        gc.setFont(font);
 
         // Vẽ text căn giữa button
         gc.fillText(text, x + width / 2, y + height / 2);
@@ -104,6 +108,19 @@ public class Button {
     public void click() {
         if (onClick != null) {
             onClick.run();
+        }
+    }
+
+    /**
+     * Tải font chữ tùy chỉnh cho button. Nếu lỗi, sử dụng font mặc định.
+     */
+    private void loadFont() {
+        try {
+            font = AssetLoader.loadFont("generation.ttf", 20);
+        } catch (Exception e) {
+            // Sử dụng font mặc định nếu không tải được
+            font = Font.font("Monospaced", 18);
+            System.out.println("CanvasRenderer: Failed to load custom fonts, using default.");
         }
     }
 

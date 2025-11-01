@@ -4,6 +4,7 @@ import Engine.HighScoreManager;
 import Engine.HighScoreManager.HighScoreEntry;
 import UI.Screen;
 import UI.UIHelper;
+import Utils.AssetLoader;
 import Utils.Constants;
 import Utils.SpriteProvider;
 import javafx.scene.canvas.GraphicsContext;
@@ -23,7 +24,9 @@ public class HighScoreDisplay implements Screen {
     private final SpriteProvider sprites; // Nguồn cung cấp sprite (hình ảnh).
     private final HighScoreManager highScoreManager; // Quản lý điểm cao.
     private Image logo; // Sprite logo game.
-
+    private String fontFamilyOptimus; // Lưu tên font family để tái sử dụng
+    private String fontFamilyGeneration; // Lưu tên font family để tái sử dụng
+    private String fontFamilyEmulogic; // Lưu tên font family để tái sử dụng
     // Các hằng số kích thước và vị trí UI.
     private static final double WINDOW_WIDTH = Constants.Window.WINDOW_WIDTH;
     private static final double WINDOW_HEIGHT = Constants.Window.WINDOW_HEIGHT;
@@ -31,10 +34,10 @@ public class HighScoreDisplay implements Screen {
     private static final double LOGO_HEIGHT = 116;
     private static final double TABLE_START_Y = 250; // Vị trí Y bắt đầu bảng điểm.
     private static final double ROW_HEIGHT = 40; // Chiều cao mỗi hàng trong bảng.
-    private static final double COL_RANK_X = 100; // Vị trí X cột Hạng.
-    private static final double COL_NAME_X = 200; // Vị trí X cột Tên.
-    private static final double COL_SCORE_X = 350; // Vị trí X cột Điểm.
-    private static final double COL_DATE_X = 480; // Vị trí X cột Ngày.
+    private static final double COL_RANK_X = 65; // Vị trí X cột Hạng.
+    private static final double COL_NAME_X = COL_RANK_X + 100; // Vị trí X cột Tên.
+    private static final double COL_SCORE_X = COL_NAME_X + 150; // Vị trí X cột Điểm.
+    private static final double COL_DATE_X = COL_SCORE_X + 130; // Vị trí X cột Ngày.
 
     /**
      * Constructor.
@@ -53,6 +56,21 @@ public class HighScoreDisplay implements Screen {
      */
     private void loadAssets() {
         logo = sprites.get("logo.png");
+        try {
+            // Chỉ load font một lần, lưu tên font family
+            Font baseFontEmulogic = AssetLoader.loadFont("emulogic.ttf", 24);
+            Font baseFontGeneration = AssetLoader.loadFont("generation.ttf", 24);
+            Font baseFontOptimus = AssetLoader.loadFont("optimus.otf", 24);
+            fontFamilyEmulogic = baseFontEmulogic.getFamily();
+            fontFamilyGeneration = baseFontGeneration.getFamily();
+            fontFamilyOptimus = baseFontOptimus.getFamily();
+        } catch (Exception e) {
+            // Sử dụng font mặc định nếu không tải được
+            fontFamilyEmulogic = "Courier New";
+            fontFamilyGeneration = "Courier New";
+            fontFamilyOptimus = "Monospaced";
+            System.out.println("MainMenu: Failed to load custom font, using default.");
+        }
     }
 
     /**
@@ -72,11 +90,11 @@ public class HighScoreDisplay implements Screen {
         // Vẽ tiêu đề màn hình
         UIHelper.drawCenteredText(gc, "HIGH SCORES",
                 WINDOW_WIDTH / 2, 200,
-                Font.font("Courier New", 30), Color.WHITE);
+                Font.font(fontFamilyEmulogic, 30), Color.WHITE);
 
         // --- Cấu hình và vẽ tiêu đề bảng (Header) ---
-        Font headerFont = Font.font("Courier New", 18);
-        Font dataFont = Font.font("Courier New", 16);
+        Font headerFont = Font.font(fontFamilyOptimus, 18);
+        Font dataFont = Font.font(fontFamilyOptimus, 16);
         Color headerColor = Color.YELLOW;
         Color dataColor = Color.WHITE;
 
@@ -91,7 +109,7 @@ public class HighScoreDisplay implements Screen {
         // Vẽ đường phân cách (Separator line)
         gc.setStroke(Color.YELLOW);
         gc.setLineWidth(2);
-        gc.strokeLine(COL_RANK_X, headerY + 25, WINDOW_WIDTH - 100, headerY + 25);
+        gc.strokeLine(COL_RANK_X, headerY + 25, WINDOW_WIDTH - 60, headerY + 25);
 
         // Vẽ dữ liệu điểm số (Scores Data)
         List<HighScoreEntry> scores = highScoreManager.getAllScores();
@@ -121,7 +139,7 @@ public class HighScoreDisplay implements Screen {
         // Vẽ hướng dẫn thoát màn hình
         UIHelper.drawCenteredText(gc, "Press ESC to return to menu",
                 WINDOW_WIDTH / 2, WINDOW_HEIGHT - 50,
-                Font.font("Courier New", 14), Color.LIGHTGRAY);
+                Font.font(fontFamilyOptimus, 14), Color.LIGHTGRAY);
     }
 
     /**

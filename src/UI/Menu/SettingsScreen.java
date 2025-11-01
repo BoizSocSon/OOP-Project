@@ -4,6 +4,7 @@ import Engine.AudioManager;
 import UI.Button;
 import UI.Screen;
 import UI.UIHelper;
+import Utils.AssetLoader;
 import Utils.Constants;
 import Utils.SpriteProvider;
 import javafx.scene.canvas.GraphicsContext;
@@ -32,7 +33,7 @@ public class SettingsScreen implements Screen {
     private int selectedOption = 0; // 0 = Điều chỉnh âm lượng (VOLUME), 1 = Bật/Tắt tiếng (SOUND).
 
     // Điều khiển âm lượng
-    private static final double VOLUME_STEP = 0.05; // Bước điều chỉnh âm lượng: 5% mỗi lần nhấn phím.
+    private static final double VOLUME_STEP = 0.01; // Bước điều chỉnh âm lượng: 5% mỗi lần nhấn phím.
 
     // Các hằng số layout
     private static final double WINDOW_WIDTH = Constants.Window.WINDOW_WIDTH;
@@ -42,6 +43,9 @@ public class SettingsScreen implements Screen {
     private static final double LOGO_WIDTH = Constants.UISprites.LOGO_WIDTH;
     private static final double LOGO_HEIGHT = Constants.UISprites.LOGO_HEIGHT;
 
+    private String fontFamilyOptimus; // Lưu tên font family để tái sử dụng
+    private String fontFamilyGeneration; // Lưu tên font family để tái sử dụng
+    private String fontFamilyEmulogic; // Lưu tên font family để tái sử dụng
     /**
      * Constructor.
      * @param audioManager AudioManager để điều khiển âm thanh.
@@ -83,6 +87,22 @@ public class SettingsScreen implements Screen {
                 "UNMUTE",
                 () -> audioManager.setMuted(false) // Hành động: Bật tiếng trở lại.
         );
+
+        try {
+            // Chỉ load font một lần, lưu tên font family
+            Font baseFontEmulogic = AssetLoader.loadFont("emulogic.ttf", 24);
+            Font baseFontGeneration = AssetLoader.loadFont("generation.ttf", 24);
+            Font baseFontOptimus = AssetLoader.loadFont("optimus.otf", 24);
+            fontFamilyEmulogic = baseFontEmulogic.getFamily();
+            fontFamilyGeneration = baseFontGeneration.getFamily();
+            fontFamilyOptimus = baseFontOptimus.getFamily();
+        } catch (Exception e) {
+            // Sử dụng font mặc định nếu không tải được
+            fontFamilyEmulogic = "Courier New";
+            fontFamilyGeneration = "Courier New";
+            fontFamilyOptimus = "Monospaced";
+            System.out.println("MainMenu: Failed to load custom font, using default.");
+        }
     }
 
     /**
@@ -103,13 +123,13 @@ public class SettingsScreen implements Screen {
         // Vẽ tiêu đề chính của màn hình
         gc.setFill(Color.GOLD);
         gc.setTextAlign(TextAlignment.CENTER);
-        gc.setFont(Font.font("Courier New", 36));
+        gc.setFont(Font.font(fontFamilyEmulogic, 30));
         gc.fillText("AUDIO SETTINGS", WINDOW_WIDTH / 2, 220);
 
         // --- Khu vực điều chỉnh VOLUME ---
         // Highlight chữ VOLUME nếu đang được chọn (selectedOption == 0)
         gc.setFill(selectedOption == 0 ? Color.YELLOW : Color.WHITE);
-        gc.setFont(Font.font("Courier New", 24));
+        gc.setFont(Font.font(fontFamilyOptimus, 24));
         gc.fillText("VOLUME", WINDOW_WIDTH / 2, 280);
 
         // Vẽ thanh volume bar trực quan
@@ -118,18 +138,18 @@ public class SettingsScreen implements Screen {
         // Vẽ phần trăm âm lượng hiện tại
         int volumePercent = (int) (audioManager.getVolume() * 100);
         gc.setFill(Color.WHITE);
-        gc.setFont(Font.font("Courier New", 20));
+        gc.setFont(Font.font(fontFamilyEmulogic, 20));
         gc.fillText(volumePercent + "%", WINDOW_WIDTH / 2, 370);
 
         // Vẽ hướng dẫn điều chỉnh âm lượng
         gc.setFill(Color.LIGHTGRAY);
-        gc.setFont(Font.font("Courier New", 14));
+        gc.setFont(Font.font(fontFamilyOptimus, 14));
         gc.fillText("Use LEFT/RIGHT arrows to adjust", WINDOW_WIDTH / 2, 395);
 
         // --- Khu vực BẬT/TẮT tiếng (MUTE/UNMUTE) ---
         // Highlight chữ SOUND nếu đang được chọn (selectedOption == 1)
         gc.setFill(selectedOption == 1 ? Color.YELLOW : Color.WHITE);
-        gc.setFont(Font.font("Courier New", 24));
+        gc.setFont(Font.font(fontFamilyOptimus, 24));
         gc.fillText("SOUND", WINDOW_WIDTH / 2, 450);
 
         // Cập nhật trạng thái selected của các nút Mute/Unmute
@@ -152,12 +172,12 @@ public class SettingsScreen implements Screen {
 
         // Vẽ hướng dẫn điều khiển nút
         gc.setFill(Color.LIGHTGRAY);
-        gc.setFont(Font.font("Courier New", 14));
+        gc.setFont(Font.font(fontFamilyOptimus, 14));
         gc.fillText("Use UP/DOWN arrows to select, ENTER to toggle", WINDOW_WIDTH / 2, 565);
 
         // Vẽ hướng dẫn thoát màn hình
         gc.setFill(Color.GOLD);
-        gc.setFont(Font.font("Courier New", 16));
+        gc.setFont(Font.font(fontFamilyOptimus, 16));
         gc.fillText("Press ESC to return to menu", WINDOW_WIDTH / 2, WINDOW_HEIGHT - 50);
     }
 

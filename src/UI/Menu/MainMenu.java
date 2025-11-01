@@ -7,6 +7,7 @@ import UI.Button;
 import UI.PowerUpDisplay;
 import UI.Screen;
 import UI.UIHelper;
+import Utils.AssetLoader;
 import Utils.Constants;
 import Utils.SpriteProvider;
 import javafx.scene.canvas.GraphicsContext;
@@ -15,6 +16,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +37,7 @@ public class MainMenu implements Screen {
     private List<Button> buttons; // Danh sách các nút bấm chính trong menu.
     private List<PowerUpDisplay> leftPowerUps; // Danh sách hiển thị PowerUp bên trái (trang trí chuyển động).
     private List<PowerUpDisplay> rightPowerUps; // Danh sách hiển thị PowerUp bên phải (trang trí chuyển động).
+    private PowerUpDisplay middlePowerUp; // PowerUp hiển thị ở giữa (nếu cần).
     private Image logo; // Logo game được hiển thị ở trên cùng.
 
     // Trạng thái lựa chọn
@@ -42,10 +46,13 @@ public class MainMenu implements Screen {
     // Các hằng số layout
     private static final double WINDOW_WIDTH = Constants.Window.WINDOW_WIDTH;
     private static final double WINDOW_HEIGHT = Constants.Window.WINDOW_HEIGHT;
-    private static final double BUTTON_WIDTH = 200;
-    private static final double BUTTON_HEIGHT = 50;
+    private static final double BUTTON_WIDTH = 180;
+    private static final double BUTTON_HEIGHT = 60;
     private static final double BUTTON_SPACING = 20; // Khoảng cách giữa các nút.
-    private static final double POWERUP_SIZE = 60; // Kích thước hiển thị PowerUp trang trí.
+    private static final double POWERUP_SIZE_HEIGHT = Constants.PowerUps.POWERUP_HEIGHT * 1.3;
+    private static final double POWERUP_SIZE_WIDTH = Constants.PowerUps.POWERUP_WIDTH * 1.3;
+    private static final double POWERUP_DISPLAY_OFFSET_Y = 60; // Khoảng cách từ trung tâm đến vị trí PowerUp.
+    private static final double POWERUP_DISPLAY_OFFSET_X = 60; // Khoảng cách từ trung tâm đến vị trí PowerUp.
     private static final double LOGO_WIDTH = Constants.UISprites.LOGO_WIDTH; // 400x145
     private static final double LOGO_HEIGHT = Constants.UISprites.LOGO_HEIGHT;
 
@@ -53,6 +60,8 @@ public class MainMenu implements Screen {
     private boolean showingHighScore = false; // Cờ kiểm tra đang hiển thị màn hình điểm cao.
     private boolean showingSettings = false; // Cờ kiểm tra đang hiển thị màn hình cài đặt.
 
+    // Font
+    private String fontFamily; // Lưu tên font family để tái sử dụng
     /**
      * Constructor.
      * @param stateManager StateManager để chuyển trạng thái game.
@@ -128,42 +137,59 @@ public class MainMenu implements Screen {
         buttons.get(0).setSelected(true);
 
         // --- Tạo PowerUp displays (Trang trí chuyển động) ---
-        double leftX = centerX - 200;
-        double startY = centerY - POWERUP_SIZE;
+        double leftX = centerX - POWERUP_DISPLAY_OFFSET_X * 4.3;
+        double startY = centerY - POWERUP_DISPLAY_OFFSET_Y * 2;
 
         // PowerUps bên trái
         leftPowerUps.add(new PowerUpDisplay(
-                PowerUpType.DUPLICATE, leftX, startY,
-                POWERUP_SIZE, POWERUP_SIZE * 0.5, sprites
+                PowerUpType.SLOW, leftX, startY,
+                POWERUP_SIZE_WIDTH, POWERUP_SIZE_HEIGHT, sprites
         ));
 
         leftPowerUps.add(new PowerUpDisplay(
-                PowerUpType.CATCH, leftX, startY + POWERUP_SIZE * 2.5,
-                POWERUP_SIZE, POWERUP_SIZE * 0.5, sprites
+                PowerUpType.CATCH, leftX, startY + POWERUP_DISPLAY_OFFSET_Y * 2.5,
+                POWERUP_SIZE_WIDTH, POWERUP_SIZE_HEIGHT, sprites
         ));
 
         leftPowerUps.add(new PowerUpDisplay(
-                PowerUpType.SLOW, leftX, startY + POWERUP_SIZE * 2.5 * 2,
-                POWERUP_SIZE, POWERUP_SIZE * 0.5, sprites
+                PowerUpType.DUPLICATE, leftX, startY + POWERUP_DISPLAY_OFFSET_Y * 2.5 * 2,
+                POWERUP_SIZE_WIDTH, POWERUP_SIZE_HEIGHT, sprites
         ));
 
         // PowerUps bên phải
-        double rightX = centerX + 200;
+        double rightX = centerX + POWERUP_DISPLAY_OFFSET_X * 4.3;
 
         rightPowerUps.add(new PowerUpDisplay(
                 PowerUpType.EXPAND, rightX, startY,
-                POWERUP_SIZE, POWERUP_SIZE * 0.5, sprites
+                POWERUP_SIZE_WIDTH, POWERUP_SIZE_HEIGHT, sprites
         ));
 
         rightPowerUps.add(new PowerUpDisplay(
-                PowerUpType.LASER, rightX, startY + POWERUP_SIZE * 2.5,
-                POWERUP_SIZE, POWERUP_SIZE * 0.5, sprites
+                PowerUpType.LASER, rightX, startY + POWERUP_DISPLAY_OFFSET_Y * 2.5,
+                POWERUP_SIZE_WIDTH, POWERUP_SIZE_HEIGHT, sprites
         ));
 
         rightPowerUps.add(new PowerUpDisplay(
-                PowerUpType.WARP, rightX, startY + POWERUP_SIZE * 2.5 * 2,
-                POWERUP_SIZE, POWERUP_SIZE * 0.5, sprites
+                PowerUpType.LIFE, rightX, startY + POWERUP_DISPLAY_OFFSET_Y * 2.5 * 2,
+                POWERUP_SIZE_WIDTH, POWERUP_SIZE_HEIGHT, sprites
         ));
+
+        // PowerUp giữa (nếu cần)
+        middlePowerUp = new PowerUpDisplay(
+                PowerUpType.WARP, centerX - POWERUP_DISPLAY_OFFSET_X, 580,
+                POWERUP_SIZE_WIDTH, POWERUP_SIZE_HEIGHT, sprites
+        );
+
+        // Tải font UI
+        try {
+            // Chỉ load font một lần, lưu tên font family
+            Font baseFont = AssetLoader.loadFont("optimus.otf", 24);
+            fontFamily = baseFont.getFamily();
+        } catch (Exception e) {
+            // Sử dụng font mặc định nếu không tải được
+            fontFamily = "Monospaced";
+            System.out.println("MainMenu: Failed to load custom font, using default.");
+        }
     }
 
     /**
@@ -202,6 +228,52 @@ public class MainMenu implements Screen {
         for (PowerUpDisplay powerUp : rightPowerUps) {
             powerUp.render(gc); // Lặp qua danh sách PowerUp bên phải để vẽ từng cái.
         }
+        middlePowerUp.render(gc); // Vẽ PowerUp giữa (nếu cần).
+
+        // 3.1. Vẽ text tên cho PowerUp
+        gc.setFont(Font.font(fontFamily, 24)); // Sử dụng font family với size 24
+        gc.setFill(Color.WHITE);
+
+        // Bên trái
+        double leftNameX = POWERUP_DISPLAY_OFFSET_X + 15;
+        gc.setTextAlign(TextAlignment.LEFT);
+        gc.fillText("Slow", leftNameX, leftPowerUps.get(0).getY());
+        gc.fillText("Catch", leftNameX, leftPowerUps.get(1).getY());
+        gc.fillText("Duplicate", leftNameX, leftPowerUps.get(2).getY());
+
+        // Bên phải
+        double rightNameX = WINDOW_WIDTH - POWERUP_DISPLAY_OFFSET_X - 15;
+        gc.setTextAlign(TextAlignment.RIGHT);
+        gc.fillText("Expand", rightNameX, rightPowerUps.get(0).getY());
+        gc.fillText("Laser", rightNameX, rightPowerUps.get(1).getY());
+        gc.fillText("Extra Life", rightNameX, rightPowerUps.get(2).getY());
+
+        // Ở giữa (nếu cần)
+        double middleNameX = WINDOW_WIDTH / 2 - POWERUP_SIZE_WIDTH + 23;
+        gc.setTextAlign(TextAlignment.LEFT);
+        gc.fillText("Warp",middleNameX, middlePowerUp.getY());
+
+        // 3.2. Vẽ mô tả ngắn cho PowerUps
+        gc.setFont(Font.font(fontFamily, 18)); // Sử dụng font family với size 18
+
+        // Bên trái
+        double leftDescX = leftPowerUps.get(0).getX() - POWERUP_SIZE_WIDTH / 2;
+        gc.setTextAlign(TextAlignment.LEFT);
+        gc.fillText("Slows down\nball speed", leftDescX, leftPowerUps.get(0).getY() + POWERUP_SIZE_WIDTH);
+        gc.fillText("Catch and\nrelease the ball", leftDescX, leftPowerUps.get(1).getY() + POWERUP_SIZE_WIDTH);
+        gc.fillText("Duplicates\nthe ball", leftDescX, leftPowerUps.get(2).getY() + POWERUP_SIZE_WIDTH);
+
+        // Bên phải
+        double rightDescX = rightPowerUps.get(0).getX() + POWERUP_SIZE_WIDTH / 2;
+        gc.setTextAlign(TextAlignment.RIGHT);
+        gc.fillText("Expands the\npaddle size", rightDescX, rightPowerUps.get(0).getY() + POWERUP_SIZE_WIDTH);
+        gc.fillText("Enables laser\nshooting", rightDescX, rightPowerUps.get(1).getY() + POWERUP_SIZE_WIDTH);
+        gc.fillText("Grants an\nextra life", rightDescX, rightPowerUps.get(2).getY() + POWERUP_SIZE_WIDTH);
+
+        // Ở giữa (nếu cần)
+        double middleDescX = middlePowerUp.getX() - POWERUP_SIZE_WIDTH / 2;
+        gc.setTextAlign(TextAlignment.LEFT);
+        gc.fillText("Jump to\nthe next level", middleDescX, middlePowerUp.getY() + POWERUP_SIZE_WIDTH);
 
         // 4. Vẽ các nút bấm
         for (Button button : buttons) {
@@ -211,7 +283,7 @@ public class MainMenu implements Screen {
         // 5. Vẽ hướng dẫn sử dụng
         UIHelper.drawCenteredText(gc, "Use Arrow Keys or Mouse to Navigate",
                 WINDOW_WIDTH / 2, WINDOW_HEIGHT - 50,
-                Font.font("Courier New", 14), Color.LIGHTGRAY);
+                Font.font(fontFamily, 14), Color.LIGHTGRAY);
     }
 
     /**
@@ -241,6 +313,7 @@ public class MainMenu implements Screen {
         for (PowerUpDisplay powerUp : rightPowerUps) {
             powerUp.update(currentTime); // Lặp và cập nhật animation cho PowerUp bên phải.
         }
+        middlePowerUp.update(currentTime);
     }
 
     /**

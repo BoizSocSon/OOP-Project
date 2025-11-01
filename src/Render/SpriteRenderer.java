@@ -75,8 +75,14 @@ public class SpriteRenderer {
             if (animation != null) {
                 Image frame = animation.getCurrentFrame();
                 if (frame != null) {
-                    gc.drawImage(frame, paddle.getX(), paddle.getY());
-                    return; // Hoàn thành vẽ
+                    // Tính toán vị trí X để căn giữa frame theo chiều ngang của paddle
+                    // Điều này đảm bảo animation mở rộng/thu nhỏ đều từ tâm
+                    double paddleCenterX = paddle.getX() + paddle.getWidth() / 2.0;
+                    double frameWidth = frame.getWidth();
+                    double drawX = paddleCenterX - frameWidth / 2.0;
+                    
+                    gc.drawImage(frame, drawX, paddle.getY());
+                    return;
                 }
             }
         }
