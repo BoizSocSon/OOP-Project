@@ -3,6 +3,5 @@ module Arkanoid {
     requires javafx.controls;
     requires javafx.media;
     requires javafx.graphics;
-    exports UI;
     exports ArkanoidGame;
 }
