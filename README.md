@@ -312,43 +312,43 @@ _Thêm screenshots của game vào đây_
 ### Gameplay
 
 #### Round 1
-![Round 1](docs/imgs/Round1.png)
+![Round 1](docs/imgs/Round1.png)\
 *Vòng chơi đầu tiên với bố cục gạch đơn giản*
 
 #### Round 2
-![Round 2](docs/imgs/Round2.png)
+![Round 2](docs/imgs/Round2.png)\
 *Vòng 2 với độ khó tăng dần và nhiều gạch hơn*
 
 #### Round 3
-![Round 3](docs/imgs/Round3.png)
+![Round 3](docs/imgs/Round3.png)\
 *Vòng 3 với pattern phức tạp*
 
 #### Round 4
-![Round 4](docs/imgs/Round4.png)
+![Round 4](docs/imgs/Round4.png)\
 *Vòng 4 - thử thách khó nhất với nhiều gạch Silver và Gold*
 
 ### Game States
 
 #### Pause
-![Pause Screen](docs/imgs/GamePause.png)
+![Pause Screen](docs/imgs/GamePause.png)\
 *Màn hình tạm dừng game*
 
 #### Game Over
-![Game Over](docs/imgs/GameOver.png)
+![Game Over](docs/imgs/GameOver.png)\
 *Màn hình Game Over hiển thị điểm số cuối cùng*
 
 #### Victory
-![Win Screen](docs/imgs/GameWin.png)
+![Win Screen](docs/imgs/GameWin.png)\
 *Màn hình chiến thắng khi hoàn thành game*
 
 ### Các tính năng khác
 
 #### High Scores
-![High Scores](docs/imgs/HighScore.png)
+![High Scores](docs/imgs/HighScore.png)\
 *Bảng xếp hạng điểm cao nhất*
 
 #### Settings
-![Settings](docs/imgs/Settings.png)
+![Settings](docs/imgs/Settings.png)\
 *Màn hình cài đặt âm thanh và các tùy chọn game*
 
 ---

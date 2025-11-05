@@ -1,0 +1,54 @@
+HƯỚNG DẪN CHƠI ARKANOID
+======================
+
+ĐIỀU KHIỂN CƠ BẢN
+----------------
+← / → (Mũi tên trái/phải): Di chuyển paddle
+Space: 
+- Bắt đầu game / Phóng bóng
+- Bắn laser (khi có power-up Laser)
+- Thả bóng (khi có power-up Catch)
+ESC: Tạm dừng game
+ESC: Quay lại menu chính
+
+LUẬT CHƠI
+---------
+1. Sử dụng paddle để đập bóng phá gạch
+2. Phá hết gạch để qua màn chơi tiếp theo
+3. Hứng power-up (màu xanh dương rơi xuống) để nhận hỗ trợ
+4. Không để bóng rơi xuống đáy (mất 1 mạng và -500 điểm)
+5. Game kết thúc khi hết mạng
+
+HỆ THỐNG ĐIỂM
+------------
+- Gạch thường: 60 - 130 điểm (cần đập 1 lần)
+- Gạch bạc: 50 điểm (cần đập 2 lần)
+- Gạch vàng: 50 điểm (không thể phá)
+- Điểm cộng phá gạch liên tiếp: n * 10;
+- Mất mạng: -500 điểm
+- Điểm qua màn: 1000 điểm + số mạng * 500
+
+POWER-UPS (VẬT PHẨM HỖ TRỢ)
+--------------------------
+Catch (15%): Bắt và giữ bóng trên paddle
+Duplicate (12%): Nhân đôi số lượng bóng
+Expand (15%): Mở rộng kích thước paddle
+Laser (15%): Bắn laser phá gạch
+Life (5%): Thêm 1 mạng (tối đa 5 mạng)
+Slow (15%): Làm chậm tốc độ bóng
+Warp (1%): Chuyển sang màn chơi tiếp theo
+
+MẸO CHƠI
+--------
+1. Cố gắng giữ bóng ở trên màn hình càng lâu càng tốt
+2. Ưu tiên nhặt power-up Life khi có thể
+3. Sử dụng các góc của paddle để điều hướng bóng
+4. Tận dụng power-up Laser để phá các gạch khó tiếp cận
+5. Power-up Catch rất hữu ích để kiểm soát bóng tốt hơn
+
+THÔNG TIN THÊM
+-------------
+- Mỗi người chơi bắt đầu với 3 mạng
+- Có tổng cộng 4 màn chơi với độ khó tăng dần
+- Điểm số được lưu lại trong bảng xếp hạng High Score
+- Có thể tạm dừng game bất cứ lúc nào bằng phím ESC

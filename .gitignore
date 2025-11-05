@@ -7,7 +7,6 @@ out/
 *.iml
 *.puml
 *.py
-*.txt
 
 ### Eclipse ###
 .apt_generated
