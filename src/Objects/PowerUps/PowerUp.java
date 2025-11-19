@@ -1,10 +1,9 @@
 package Objects.PowerUps;
 
 import Engine.GameManager;
-import GeometryPrimitives.Point;
 import GeometryPrimitives.Rectangle;
 import GeometryPrimitives.Velocity;
-import Objects.Core.GameObject;
+import Objects.Core.MovableObject;
 import Objects.GameEntities.Paddle;
 import Render.Animation;
 import Utils.AnimationFactory;
@@ -15,17 +14,9 @@ import Utils.Constants;
  * Lớp này quản lý các thuộc tính cơ bản như vị trí, kích thước, vận tốc, animation,
  * và logic va chạm với Paddle.
  */
-public abstract class PowerUp implements GameObject {
-    // Vị trí và kích thước
-    private double x;
-    private double y;
-    private final double width;
-    private final double height;
-
+public abstract class PowerUp extends MovableObject {
     // Loại Power-up (ví dụ: LASER, EXPAND, CATCH)
     private final PowerUpType type;
-    // Vận tốc rơi (luôn hướng xuống)
-    private final Velocity velocity;
     // Animation hiển thị của Power-up
     private final Animation animation;
 
@@ -43,18 +34,14 @@ public abstract class PowerUp implements GameObject {
      * @param type Loại PowerUp (để xác định sprite/animation).
      */
     public PowerUp(double x, double y, PowerUpType type) {
+        super(x, y, Constants.PowerUps.POWERUP_WIDTH, Constants.PowerUps.POWERUP_HEIGHT);
         this.type = type;
-        this.x = x;
-        this.y = y;
-        // Lấy kích thước cố định từ Constants
-        this.width = Constants.PowerUps.POWERUP_WIDTH;
-        this.height = Constants.PowerUps.POWERUP_HEIGHT;
 
         this.collected = false;
         this.active = true; // Ban đầu Power-up luôn hoạt động
 
         // Vận tốc rơi thẳng đứng xuống dưới
-        this.velocity = new Velocity(0, Constants.PowerUps.POWERUP_FALL_SPEED);
+        setVelocity(new Velocity(0, Constants.PowerUps.POWERUP_FALL_SPEED));
         // Tạo animation dựa trên loại PowerUp
         this.animation = AnimationFactory.createPowerUpAnimation(type);
         this.animation.play(); // Bắt đầu chơi animation
@@ -65,11 +52,8 @@ public abstract class PowerUp implements GameObject {
      * Cập nhật vị trí dựa trên vận tốc và cập nhật animation.
      */
     public void update() {
-        // Cập nhật vị trí
-        Point currentPos = new Point(x, y);
-        Point newPos = velocity.applyToPoint(currentPos);
-        this.x = newPos.getX();
-        this.y = newPos.getY();
+        // Cập nhật vị trí bằng cách di chuyển
+        move();
 
         // Cập nhật animation
         if (animation != null) {
@@ -103,10 +87,10 @@ public abstract class PowerUp implements GameObject {
     }
 
     // --- Getters ---
-    public double getX() { return x; }
-    public double getY() { return y; }
-    public double getWidth() { return width; }
-    public double getHeight() { return height; }
+    public double getX() { return super.getX(); }
+    public double getY() { return super.getY(); }
+    public double getWidth() { return super.getWidth(); }
+    public double getHeight() { return super.getHeight(); }
     public PowerUpType getType() { return type; }
     public boolean isActive() { return active; }
     public boolean isCollected() { return collected; }
@@ -145,7 +129,7 @@ public abstract class PowerUp implements GameObject {
      */
     @Override
     public Rectangle getBounds() {
-        return new Rectangle(new Point(x, y), width, height);
+        return super.getBounds();
     }
 
     /**
@@ -164,5 +148,6 @@ public abstract class PowerUp implements GameObject {
     @Override
     public void destroy() {
         active = false;
+        super.destroy();
     }
 }

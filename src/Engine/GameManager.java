@@ -519,7 +519,7 @@ public class GameManager {
      * Kích hoạt khả năng bắn laser trên thanh đỡ (PowerUp LASER).
      */
     public void enableLaser() {
-        paddle.enableLaser();
+        paddle.setLaserEnabled(true);
         System.out.println("GameManager: Laser enabled with " + Constants.Laser.LASER_SHOTS + " shots");
     }
 

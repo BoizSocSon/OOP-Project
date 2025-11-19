@@ -207,7 +207,7 @@ public final class FileManager {
      * @param filename Tên file cần ghi.
      * @param lines Danh sách các chuỗi (dòng) cần ghi vào file.
      */
-    public static void writeLinesToFile(String filename, java.util.List<String> lines) {
+    public static void writeLinesToFile(String filename, List<String> lines) {
         // Đồng bộ hóa thao tác ghi file.
         synchronized (LOCK) {
             try {
